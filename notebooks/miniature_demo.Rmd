@@ -1,0 +1,50 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+Minature performes dimensionality reduction on a low-resolution representation of a highly multiplexed imaging dataset in order to provide a thumbnail that represents the spatial heterogenity in the dataset.
+
+Points are coloured by translating their position in 3D low dimension space to a LAB colour. As this is broadly perceptually uniform, similar colours will be closely localised in low-dimension space and therefore have a more similar marker expression signature.
+
+Minature requires: 
+- EBImage
+- tidyverse
+- scales
+- dynutils
+- colorspace
+- uwot
+
+```{r}
+test_paths <- list.files(here::here("data"), full.names = TRUE)
+```
+
+```{r}
+
+source('~/miniature/R/paint_minaiture.R')
+
+```
+
+```{r}
+paint_miniature(test_paths[1], "~/miniature/outputs/test2.png", remove_bg = FALSE)
+```
+
+```{r}
+tibble(input = test_paths) %>%
+  mutate(
+    outputs = basename(input) %>% paste0("~/miniature/outputs/",.) %>% str_remove(".ome.tif*") %>% paste0(.,"-miniature.png"),
+    painting = map2(input, outputs, paint_miniature)
+  ) 
+```
+
+```{r}
+tibble(input = test_paths) %>%
+  mutate(
+    outputs = basename(input) %>% paste0("~/miniature/outputs/",.) %>% str_remove(".ome.tif*") %>% paste0(.,"-miniature.png"),
+    images = map(outputs, readImage)
+  ) %>%
+  pull(images) %>%
+  map(display, method = "raster") 
+```
+
+Current limitation is that the image has to be loaded into memory

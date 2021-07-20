@@ -1,0 +1,121 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+
+```
+
+```{r}
+library(tidyverse)
+library(uwot)
+library(reticulate)
+library(ijtiff)
+library(magick)
+
+```
+## In magick
+
+```{r}
+
+log_plus1 = function(x) log(x+1)
+
+tiff_image <- magick::image_read(here::here("data", "HTA9_1_BA_L_ROI04.ome.tif"))
+small_image <- tiff_image %>% image_resize(300)
+
+
+image_matrix <- small_image %>% as.list() %>% map(image_data) %>% map(as.numeric) %>% map(as.vector)
+image_matrix <- do.call(cbind,image_matrix)
+
+sum_intensity <- rowMeans(image_matrix)
+pseudocount <- quantile(sum_intensity,0.01)
+
+
+
+tissue_px <- which(sum_intensity > quantile(sum_intensity,0.35))
+
+tissue_matrix <- image_matrix[tissue_px,]
+
+tibble(i = sum_intensity+pseudocount) %>% ggplot(aes(i)) + geom_histogram() + geom_vline(xintercept = quantile(sum_intensity+pseudocount,0.35)) + scale_x_log10()
+
+
+```
+
+
+## In EBImage
+
+```{r}
+test_path <- here::here("data", "HTA9_1_BA_L_ROI04.ome.tif")
+
+tiff_image <- EBImage::readImage(test_path)
+
+small_image <- EBImage::resize(tiff_image, 300)
+
+n_px <- small_image %>% dim() %>% .[1:2] %>% prod()
+n_ch <- small_image %>% dim() %>% .[3]
+
+image_matrix <- small_image@.Data %>% array(dim = c(n_px,n_ch))
+
+
+image_matrix %>% rowSums() %>% tibble(val = .) %>%
+  ggplot(aes(val+0.001)) + geom_histogram() +
+  scale_x_log10()
+```
+
+```{r}
+dim_red <- log10(tissue_matrix+pseudocount) %>% apply(2, rescale) %>%
+  umap(verbose = TRUE, fast_sgd = TRUE, metric = "cosine")
+
+dim_red_coloured <- dim_red %>% as_tibble() %>%
+   mutate(L = 50,
+         a = (rescale(dynutils::scale_quantile(V1, 0.01),c(0,1)) - 0.5) *200,
+         b = (rescale(dynutils::scale_quantile(V2, 0.01),c(0,1)) - 0.5) *200,
+         LabHexUMAP = colorspace::LAB(L,a,b) %>% colorspace::hex(fixup = TRUE))
+
+dim_red_coloured %>%
+  ggplot(aes(V1,V2, colour = LabHexUMAP)) + geom_point(shape = ".") + scale_colour_identity() +
+  coord_equal()
+```
+
+```{r}
+coords <- which(!is.na(small_image[[1]][1,,] %>% as.matrix() %>% t()), arr.ind = TRUE) %>% .[tissue_px,]
+
+dim_red_coloured %>% bind_cols(coords %>% as_tibble()) %>%
+  ggplot(aes(col, -row, fill = LabHexUMAP)) +
+  geom_raster() +
+  scale_fill_identity() +
+  theme_void() +
+  theme(plot.background = element_rect(fill = "black"))
+
+
+ 
+```
+
+```{r}
+
+sum_image <- small_image %>% apply(c(1,2), sum) 
+mean_image <- small_image %>% apply(c(1,2), mean) 
+median_image <- small_image %>% apply(c(1,2), median) 
+
+
+display(sum_image)
+display(mean_image)
+display(median_image)
+
+range(sum_image)
+
+otsu_image <- sum_image > otsu(sum_image, range = range(sum_image))
+
+display(otsu_image)
+
+log_sum_image <- log(sum_image+quantile(sum_image,0.01))
+
+otsu_image <-log_sum_image > otsu(log_sum_image, range = range(log_sum_image))
+
+tissue_px <- which(otsu_image == TRUE, arr.ind = TRUE)
+
+display(otsu_image)
+```
+
+
+

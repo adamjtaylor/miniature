@@ -16,5 +16,9 @@
       "Repository": "CRAN",
       "Hash": "079cb1f03ff972b30401ed05623cbe92"
     }
+  },
+  "Python": {
+    "Version": "3.6.9",
+    "Type": "virtualenv"
   }
 }

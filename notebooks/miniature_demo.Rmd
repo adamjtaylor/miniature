@@ -25,9 +25,28 @@ source('~/miniature/R/paint_minaiture.R')
 
 ```
 
+Default settings output to a tempfile, the path of which is returned
+
+The default image size has the longest dimension set at 400 px - a comprimise for speed and quality.
+
+Future versions should look to pull a set level of the image pyramid
+Note that exact colours and embedding may vary with runs as `fast_sgd` has been set to `TRUE` in `uwot::umap` which accelerates embedding at the cost of exact reproducibility.
+
 ```{r}
-paint_miniature(test_paths[1], "~/miniature/outputs/test2.png", remove_bg = FALSE)
+
+example_miniature <- paint_miniature(
+  input = test_paths[2],
+  output = tempfile(fileext = ".png"),
+  output_max_dim = 400,
+  remove_bg = TRUE,
+  return_objects = FALSE
+)
+
+
+example_miniature %>% readImage() %>% display(method = "raster")
 ```
+
+Mapping accros several examples with default settings
 
 ```{r}
 tibble(input = test_paths) %>%
@@ -37,6 +56,7 @@ tibble(input = test_paths) %>%
   ) 
 ```
 
+Displaying these examples
 ```{r}
 tibble(input = test_paths) %>%
   mutate(
@@ -47,4 +67,57 @@ tibble(input = test_paths) %>%
   map(display, method = "raster") 
 ```
 
-Current limitation is that the image has to be loaded into memory
+
+
+## Getting low dimensional embedding for further plotting
+
+Setting `return_objects == TRUE` returns the processed data to enable further visualisation of the low dimension space
+```{r}
+miniature_objects <- paint_miniature(
+  test_paths[2], 
+  return_objects = TRUE, 
+  output_max_dim = 300
+  )
+```
+Plot the image and embedding in low-dimension space (3D embedding, Dim1 and Dim2 shown)
+
+```{r}
+
+patchwork::wrap_plots(
+mini_objects$plot$plot,
+
+mini_objects$plot$umap_colours %>%
+  ggplot(aes(V1,V2,colour = LabHexUMAP)) +
+  geom_point(shape = ".") +
+  coord_equal() +
+  scale_colour_identity() +
+  theme_classic()
+
+)
+
+
+```
+
+## Background removal
+
+By default `paint_miniature` attempts background removal using Otsu's threshold on the log scaled channel sum image
+This can be acccessed through the small_image slot
+
+```{r}
+
+miniature_objects$small_image$otsu_image %>% display(method = "raster")
+
+```
+
+Background subtraction can be turned off by setting `remove_bg` as FALSE
+
+```{r}
+bg_retained <- paint_miniature(
+  test_paths[2], 
+  remove_bg = FALSE,
+  output_max_dim = 300
+  ) %>%
+  readImage() %>%
+  display(method = "raster")
+```
+

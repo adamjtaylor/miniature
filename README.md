@@ -4,6 +4,12 @@
 
 An approach using dimensionality reduction to create thumnails for high-dimensional imaging
 
+- Load a n-dimensional image
+- Downscale
+- Background removal
+- Reduce each pixel from n-D to 3-D by UMAP with correlation distance 
+- Colour pixels by conversion of position in low-D space to LAB colour
+
 ![IMC image example with miniature](https://github.com/adamjtaylor/miniature/blob/main/outputs/HT060P1_REMAIN_ROI_04-miniature.png?s=100)
 ![example image](https://github.com/adamjtaylor/miniature/blob/main/outputs/HTA9_1_BA_L_ROI04-miniature.png?raw=true)
 ![example image](https://github.com/adamjtaylor/miniature/blob/main/outputs/HTA9_1_BA_M_ROI03-miniature.png?raw=true)

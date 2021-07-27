@@ -8,12 +8,19 @@ Minature performes dimensionality reduction on a low-resolution representation o
 Points are coloured by translating their position in 3D low dimension space to a LAB colour. As this is broadly perceptually uniform, similar colours will be closely localised in low-dimension space and therefore have a more similar marker expression signature.
 
 Minature requires: 
-- EBImage
-- tidyverse
-- scales
-- dynutils
-- colorspace
-- uwot
+
+```{r}
+
+
+
+library(EBImage)
+library(tidyverse)
+library(scales)
+library(dynutils)
+library(colorspace)
+library(uwot)
+
+```
 
 ```{r}
 test_paths <- list.files(here::here("data"), full.names = TRUE)
@@ -83,10 +90,12 @@ Plot the image and embedding in low-dimension space (3D embedding, Dim1 and Dim2
 
 ```{r}
 
-patchwork::wrap_plots(
-mini_objects$plot$plot,
+miniature_objects$small_image
 
-mini_objects$plot$umap_colours %>%
+patchwork::wrap_plots(
+miniature_objects$plot$plot,
+
+miniature_objects$plot$umap_colours %>%
   ggplot(aes(V1,V2,colour = LabHexUMAP)) +
   geom_point(shape = ".") +
   coord_equal() +

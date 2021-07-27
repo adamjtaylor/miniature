@@ -1,0 +1,9 @@
+version: "3.8"
+services:
+  app:
+    build: .
+    image: my_image
+    volumes:
+      - ../data:/home/artist/data
+    stdin_open: true
+    tty: true

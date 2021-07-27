@@ -12,7 +12,35 @@ An approach using dimensionality reduction to create thumnails for high-dimensio
 - Reduce each pixel from n-D to 3-D by UMAP with correlation distance 
 - Colour pixels by conversion of position in low-D space to LAB colour
 
+## Docker
 
+The docker-comppose.yml expects images to be avaliable in `./data` (a folder in the current dir called `data`)
+Images should be an multichannel `ome.tiff` containing a image pyramid
+Output as a png, jpeg or tif
+
+Clone the repository
+```
+git clone https://github.com/adamjtaylor/miniature
+cd miniature
+```
+Run the docker container
+```
+cd docker
+sudo docker-compose run --rm app
+```
+
+Once in the container run
+```
+python paint_miniature.py 'data/<input-file-name>' 'data/<output-file-name>'
+```
+
+## Python
+Follow the notebooks in the `py` folder
+
+## R
+Follow the notebooks in the `notebooks` folder
+
+## Examples
 
 ![IMC image example with miniature](https://github.com/adamjtaylor/miniature/blob/main/outputs/HT060P1_REMAIN_ROI_04-miniature.png?s=100)
 ![example image](https://github.com/adamjtaylor/miniature/blob/main/outputs/HTA9_1_BA_L_ROI04-miniature.png?raw=true)

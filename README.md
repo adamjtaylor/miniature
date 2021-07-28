@@ -44,7 +44,9 @@ Follow the notebooks in the `notebooks` folder or use the `R/paint_miniature.R` 
 
 ## Examples
 
+![example image](https://github.com/adamjtaylor/miniature/blob/main/outputs/miniature.jpg?raw=true)
+![example_image](https://github.com/adamjtaylor/miniature/blob/main/outputs/miniatur-_L2-crc20.png?raw=true)
 ![IMC image example with miniature](https://github.com/adamjtaylor/miniature/blob/main/outputs/HT060P1_REMAIN_ROI_04-miniature.png?s=100)
-![example image](https://github.com/adamjtaylor/miniature/blob/main/outputs/HTA9_1_BA_L_ROI04-miniature.png?raw=true)
 ![example image](https://github.com/adamjtaylor/miniature/blob/main/outputs/HTA9_1_BA_M_ROI03-miniature.png?raw=true)
 ![example_image](https://github.com/adamjtaylor/miniature/blob/main/outputs/HTA9_1_POST_M_ROI02-miniature.png?raw=true)
+

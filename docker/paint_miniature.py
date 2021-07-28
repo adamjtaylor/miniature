@@ -74,7 +74,7 @@ elif remove_bg == True:
 else:
     tissue_array = list(map(get_tissue, zarray))
     print("Removing background")
-
+    
 tissue_array = np.array(tissue_array).T
 
 

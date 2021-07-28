@@ -24,6 +24,7 @@ from skimage.morphology import remove_small_objects
 path = sys.argv[1]
 output = "data/" + sys.argv[2] if len(sys.argv) >=3  else "data/miniature.png"
 level = int(sys.argv[3]) if len(sys.argv) >= 4 else -1
+remove_bg = sys.argv[4] == True if len(sys.argv) >= 5 else True
 
 print("Loading image")
 tiff = tifffile.TiffFile(path, is_ome=False)
@@ -55,24 +56,24 @@ binary = log_image > thresh
 
 cleaned = remove_small_objects(binary)
 
-#everything = np.ones_like(binary, dtype=bool)
+everything = np.ones_like(binary, dtype=bool)
 
 def get_tissue(x):
     return x[cleaned]
 
-#def get_all(x):
-#    return x[everything]
+def get_all(x):
+    return x[everything]
 
-#if sys.argv[2] == 0:
-#    tissue_array = list(map(get_all, zarray))
-#    print("Preserving background")
-#    cleaned = everything
-#elif sys.argv[2] == 1:
-#    tissue_array = list(map(get_tissue, zarray))
-#    print("Removing background")
-#else:
-tissue_array = list(map(get_tissue, zarray))
-print("Removing background")
+if remove_bg == False:
+    tissue_array = list(map(get_all, zarray))
+    print("Preserving background")
+    cleaned = everything
+elif remove_bg == True:
+    tissue_array = list(map(get_tissue, zarray))
+    print("Removing background")
+else:
+    tissue_array = list(map(get_tissue, zarray))
+    print("Removing background")
 
 tissue_array = np.array(tissue_array).T
 

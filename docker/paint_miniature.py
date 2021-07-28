@@ -102,13 +102,13 @@ dim3 = scaler.fit_transform(embedding[:,2].reshape(-1,1))
 rescaled_embedding = np.concatenate((dim1,dim2,dim3), axis = 1)
 rescaled_embedding_list = rescaled_embedding.tolist()
 
-def umap_to_hex(x):
+def umap_to_lab_to_rgb(x):
     lab = LabColor(x[2], x[0], x[1])
     rgb = convert_color(lab, sRGBColor)
     clamped_rgb = sRGBColor(rgb.clamped_rgb_r, rgb.clamped_rgb_g, rgb.clamped_rgb_b)
     return clamped_rgb.get_value_tuple()
 
-rgb = list(map(umap_to_hex, rescaled_embedding_list))
+rgb = list(map(umap_to_lab_to_rgb, rescaled_embedding_list))
 
 
 rgb_shape = list(cleaned.shape)

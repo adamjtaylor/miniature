@@ -6,9 +6,8 @@ An approach using dimensionality reduction to create thumnails for high-dimensio
 
 ![image](https://user-images.githubusercontent.com/14945787/127029087-b0312bc3-299b-41ae-acf7-ffa226f81218.png)
 
-- Load a n-dimensional image
-- Downscale
-- Background removal
+- Load highest (or specified) level of image pyramid
+- Background removal by Otsu's threshold (optional)
 - Reduce each pixel from n-D to 3-D by UMAP with correlation distance 
 - Colour pixels by conversion of position in low-D space to LAB colour
 

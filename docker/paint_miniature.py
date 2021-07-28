@@ -56,7 +56,7 @@ binary = log_image > thresh
 
 cleaned = remove_small_objects(binary)
 
-#everything = np.ones_like(binary, dtype=bool)
+everything = np.ones_like(binary, dtype=bool)
 
 def get_tissue(x):
     return x[cleaned]
@@ -72,8 +72,8 @@ elif remove_bg == True:
     tissue_array = list(map(get_tissue, zarray))
     print("Removing background")
 else:
-tissue_array = list(map(get_tissue, zarray))
-print("Removing background")
+    tissue_array = list(map(get_tissue, zarray))
+    print("Removing background")
 
 tissue_array = np.array(tissue_array).T
 

@@ -40,11 +40,8 @@ For example
 python paint_miniature.py 'data/HTA9_1_BA_L_ROI04.ome.tif' 'miniature.jpg' -2
 ````
 
-## Python
-Follow the notebooks in the `py` folder
-
 ## R
-Follow the notebooks in the `notebooks` folder
+Follow the notebooks in the `notebooks` folder or use the `R/paint_miniature.R` script
 
 ## Examples
 

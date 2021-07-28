@@ -14,7 +14,7 @@ An approach using dimensionality reduction to create thumnails for high-dimensio
 ## Docker
 
 The docker-comppose.yml expects images to be avaliable in `../data` (a folder in the current `miniature` dir called `data`)
-Images should be an multichannel `ome.tiff` containing a image pyramid
+Images should be an multichannel `ome.tiff` containing a image pyramid. 
 Output as a `.png`, `.jpeg` or `.tif`/`.tiff`
 
 Clone the repository

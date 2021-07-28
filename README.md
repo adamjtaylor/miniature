@@ -4,7 +4,7 @@
 
 An approach using dimensionality reduction to create thumnails for high-dimensional imaging
 
-![image](https://user-images.githubusercontent.com/14945787/127029087-b0312bc3-299b-41ae-acf7-ffa226f81218.png)
+![image](https://user-images.githubusercontent.com/14945787/127400268-b6345cf4-a90c-4d77-9f83-6889de6763a5.png)
 
 - Load highest (or specified) level of image pyramid
 - Background removal by Otsu's threshold (optional)

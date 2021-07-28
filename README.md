@@ -31,7 +31,7 @@ sudo docker-compose run --rm app
 
 Once in the container run
 ```
-python paint_miniature.py 'data/<input-file-name>' <output-file-name> <image-pyramid-level-index>
+python paint_miniature.py 'data/<input-file-name>' <output-file-name> <image-pyramid-level-index> <image-pyramid-index> <True|False>
 ```
 
 For example

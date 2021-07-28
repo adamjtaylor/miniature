@@ -117,9 +117,6 @@ rgb_shape.append(3)
 rgb_image = np.zeros(rgb_shape)
 rgb_image[cleaned] = np.array(rgb)
 
-plt.imshow(rgb_image)
-plt.axis ("off")
-
 print("Saving image as " + output)
 
 imsave(output, rgb_image)

@@ -31,8 +31,13 @@ sudo docker-compose run --rm app
 
 Once in the container run
 ```
-python paint_miniature.py 'data/<input-file-name>' 'data/<output-file-name>'
+python paint_miniature.py 'data/<input-file-name>' <output-file-name> <image-pyramid-level-index>
 ```
+
+For example
+```
+python paint_miniature.py 'data/HTA9_1_BA_L_ROI04.ome.tif' 'miniature.jpg' -2
+````
 
 ## Python
 Follow the notebooks in the `py` folder

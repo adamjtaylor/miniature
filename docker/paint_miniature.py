@@ -20,14 +20,21 @@ from skimage.morphology import remove_small_objects
 
 # Select the last level of the image pyramid and load as a zarr array. Reshape into a pixels x channels array.
 
+
 path = sys.argv[1]
+output = "data/" + sys.argv[2] if len(sys.argv) >=3  else "data/miniature.png"
+level = int(sys.argv[3]) if len(sys.argv) >= 4 else -1
 
 print("Loading image")
 tiff = tifffile.TiffFile(path, is_ome=False)
 tiff_levels = tiff.series[0].levels
-highest_level_tiff = tiff_levels[-1]
+highest_level_tiff = tiff_levels[level]
 
 zarray = zarr.open(highest_level_tiff.aszarr())
+
+print("Opened image pyramid level:", level)
+print("Image dimensions:", zarray.shape)
+
 
 # # Threshold the image
 # Make a sum image. Log this with a pseudocount of the 1st percentile. Otsus threshold
@@ -112,8 +119,8 @@ rgb_image[cleaned] = np.array(rgb)
 plt.imshow(rgb_image)
 plt.axis ("off")
 
-print("Saving image as " + sys.argv[2])
+print("Saving image as " + output)
 
-imsave(sys.argv[2], rgb_image)
+imsave(output, rgb_image)
 
 print("Complete!")

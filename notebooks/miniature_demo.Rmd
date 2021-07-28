@@ -90,7 +90,12 @@ Plot the image and embedding in low-dimension space (3D embedding, Dim1 and Dim2
 
 ```{r}
 
-miniature_objects$small_image
+grid <- miniature_objects$small_image$small_image %>% normalize(ft = c(-0.1,5)) %>%
+  display(all = TRUE, method = "raster", nx = 3)
+
+```
+
+```{r}
 
 patchwork::wrap_plots(
 miniature_objects$plot$plot,

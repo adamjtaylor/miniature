@@ -2,7 +2,8 @@
 
 > *Miniature (illuminated manuscript)*, a small illustration used to decorate an illuminated manuscript
 
-An approach using dimensionality reduction to create thumnails for high-dimensional imaging
+An approach using dimensionality reduction to create thumnails for high-dimensional imaging.  
+*Miniature* enables rapid visual assesment of molecular heterogneity within highly multiplexed images of complex tissues.
 
 ![image](https://user-images.githubusercontent.com/14945787/127400268-b6345cf4-a90c-4d77-9f83-6889de6763a5.png)
 

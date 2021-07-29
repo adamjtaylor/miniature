@@ -49,6 +49,8 @@ Image info | Background removed | Background retained |
 ---- | ---- | --- |
  40 channel CODEX | ![image](https://user-images.githubusercontent.com/14945787/127377527-1d93913e-5ca0-4115-9e78-4fc49fee0d93.png) | ![image](https://user-images.githubusercontent.com/14945787/127377555-f33270f7-bddc-4af1-8ff8-aac46c634a5b.png) |
  12 channel MxIF | ![image](https://user-images.githubusercontent.com/14945787/127377665-fe4a7dbd-2847-4a7c-9688-1928a65159a3.png) | ![image](https://user-images.githubusercontent.com/14945787/127377625-ae88c1da-c647-47f7-ab3d-8f627f2ebf2d.png) |
+ 28 channel IMC | ![image](https://user-images.githubusercontent.com/14945787/127378069-0f15d759-bb71-4a13-97c4-126efffa60af.png) | ![image](https://user-images.githubusercontent.com/14945787/127378051-634836b3-972f-4bae-bc4a-fdc05ded048b.png) |
+ 48 channel MIBI | ![image](https://user-images.githubusercontent.com/14945787/127505192-45cf2c1c-2596-4a80-975c-1a926cfdf357.png) | ![image](https://user-images.githubusercontent.com/14945787/127505226-d6d160a6-10c3-4cbf-8bea-82f870932a66.png) |
  12 channel MxIF | ![image](https://user-images.githubusercontent.com/14945787/127377800-c6351c50-f957-4154-8e47-fd83c1c6f202.png) | ![image](https://user-images.githubusercontent.com/14945787/127377769-013602da-17cd-4be2-bf32-c408b400abe0.png) |
  12 channel MxIF | ![image](https://user-images.githubusercontent.com/14945787/127377898-3639b4b1-54c1-4e0a-847a-f87f5fea7527.png) | ![image](https://user-images.githubusercontent.com/14945787/127377986-1bdfc4e1-5b9d-48a9-86ea-3c1e266f7d6e.png) |
- 28 channel IMC | ![image](https://user-images.githubusercontent.com/14945787/127378069-0f15d759-bb71-4a13-97c4-126efffa60af.png) | ![image](https://user-images.githubusercontent.com/14945787/127378051-634836b3-972f-4bae-bc4a-fdc05ded048b.png) |
+ 

@@ -33,7 +33,7 @@ sudo docker-compose run --rm app
 
 Once in the container run
 ```
-python paint_miniature.py 'data/<input-file-name>' <output-file-name> <image-pyramid-level-index> <True|False (remove background bool)>
+python paint_miniature.py --input 'data/<input-file-name>' --output <output-file-name> --level <image-pyramid-level-index> --remove-bg <True|False (remove background bool)>
 ```
 
 For example

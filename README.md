@@ -38,7 +38,7 @@ python paint_miniature.py --input 'data/<input-file-name>' --output <output-file
 
 For example
 ```
-python paint_miniature.py 'data/HTA9_1_BA_L_ROI04.ome.tif' 'miniature.jpg' -2
+python paint_miniature.py --input 'data/HTA9_1_BA_L_ROI04.ome.tif' --output 'miniature.jpg' --level -2
 ````
 
 ## R

@@ -31,7 +31,7 @@ parser.add_argument('-i', '--input',
 parser.add_argument('-o', '--output',
                     type=str,
                     dest='output',
-                    default='data/miniature.png'
+                    default='miniature.png',
                     help='file name of output')
 
 parser.add_argument('-l', '--level',

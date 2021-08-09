@@ -43,8 +43,8 @@ parser.add_argument('-l', '--level',
 parser.add_argument('-r', '--remove_bg',
                     type=bool,
                     dest='remove_bg',
-                    default=-True,
-                    help='Attempt to remove background')
+                    default=True,
+                    help='Attempt to remove background (defaults to True)')
 
 args = parser.parse_args()
 

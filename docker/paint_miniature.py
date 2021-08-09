@@ -31,7 +31,7 @@ parser.add_argument('-i', '--input',
 parser.add_argument('-o', '--output',
                     type=str,
                     dest='output',
-                    default='miniature.png',
+                    default='data/miniature.png',
                     help='file name of output')
 
 parser.add_argument('-l', '--level',
@@ -40,17 +40,20 @@ parser.add_argument('-l', '--level',
                     default=-1,
                     help='image pyramid level to use. defaults to -1 (highest)')
 
-parser.add_argument('-r', '--remove-bg',
+parser.add_argument('-r', '--remove_bg',
                     type=bool,
                     dest='remove_bg',
                     default=-True,
                     help='Attempt to remove background')
 
+args = parser.parse_args()
+
+
 
 print("Loading image")
-tiff = tifffile.TiffFile(path, is_ome=False)
+tiff = tifffile.TiffFile(args.path, is_ome=False)
 tiff_levels = tiff.series[0].levels
-highest_level_tiff = tiff_levels[level]
+highest_level_tiff = tiff_levels[args.level]
 
 zarray = zarr.open(highest_level_tiff.aszarr())
 
@@ -85,11 +88,11 @@ def get_tissue(x):
 def get_all(x):
     return x[everything]
 
-if remove_bg == False:
+if args.remove_bg == False:
     tissue_array = list(map(get_all, zarray))
     print("Preserving background")
     cleaned = everything
-elif remove_bg == True:
+elif args.remove_bg == True:
     tissue_array = list(map(get_tissue, zarray))
     print("Removing background")
 else:
@@ -138,8 +141,8 @@ rgb_shape.append(3)
 rgb_image = np.zeros(rgb_shape)
 rgb_image[cleaned] = np.array(rgb)
 
-print("Saving image as " + output)
-output_path = "data/" + output
+print("Saving image as " + args.output)
+output_path = "data/" + args.output
 
 imsave(output_path, rgb_image)
 

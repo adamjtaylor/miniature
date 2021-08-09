@@ -7,3 +7,4 @@ tifffile
 umap-learn 
 zarr 
 imagecodecs
+argparse

@@ -3,6 +3,7 @@
 
 # Import libraries
 
+import argparse
 import tifffile
 import zarr
 import sys
@@ -20,11 +21,31 @@ from skimage.morphology import remove_small_objects
 
 # Select the last level of the image pyramid and load as a zarr array. Reshape into a pixels x channels array.
 
+parser = argparse.ArgumentParser(description = 'Paint a miniature from a streaming s3 object')
 
-path = sys.argv[1]
-output = "data/" + sys.argv[2] if len(sys.argv) >=3  else "data/miniature.png"
-level = int(sys.argv[3]) if len(sys.argv) >= 4 else -1
-remove_bg = sys.argv[4] == True if len(sys.argv) >= 5 else True
+parser.add_argument('-i', '--input',
+                    type=str,
+                    dest='path',
+                    help='path to ome-tiff')
+
+parser.add_argument('-o', '--output',
+                    type=str,
+                    dest='output',
+                    default='data/miniature.png'
+                    help='file name of output')
+
+parser.add_argument('-l', '--level',
+                    type=int,
+                    dest='level',
+                    default=-1,
+                    help='image pyramid level to use. defaults to -1 (highest)')
+
+parser.add_argument('-r', '--remove-bg',
+                    type=bool,
+                    dest='remove_bg',
+                    default=-True,
+                    help='Attempt to remove background')
+
 
 print("Loading image")
 tiff = tifffile.TiffFile(path, is_ome=False)
@@ -118,7 +139,8 @@ rgb_image = np.zeros(rgb_shape)
 rgb_image[cleaned] = np.array(rgb)
 
 print("Saving image as " + output)
+output_path = "data/" + output
 
-imsave(output, rgb_image)
+imsave(output_path, rgb_image)
 
 print("Complete!")

@@ -5,6 +5,8 @@
 An approach using dimensionality reduction to create thumnails for high-dimensional imaging.  
 *Miniature* enables rapid visual assesment of molecular heterogneity within highly multiplexed images of complex tissues.
 
+*Miniature* images embeds each pixel into low dimensional space by corelation distance, and colours them by conversion of their position in low-D space to LAB colour. Therefore areas of similar colour can be expected to have comperable marker expression (within a single image).
+
 ![image](https://user-images.githubusercontent.com/14945787/127400268-b6345cf4-a90c-4d77-9f83-6889de6763a5.png)
 
 - Load highest (or specified) level of image pyramid

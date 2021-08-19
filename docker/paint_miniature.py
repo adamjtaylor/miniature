@@ -3,6 +3,7 @@
 
 # Import libraries
 
+import argparse
 import tifffile
 import zarr
 import sys
@@ -20,16 +21,39 @@ from skimage.morphology import remove_small_objects
 
 # Select the last level of the image pyramid and load as a zarr array. Reshape into a pixels x channels array.
 
+parser = argparse.ArgumentParser(description = 'Paint a miniature from a streaming s3 object')
 
-path = sys.argv[1]
-output = "data/" + sys.argv[2] if len(sys.argv) >=3  else "data/miniature.png"
-level = int(sys.argv[3]) if len(sys.argv) >= 4 else -1
-remove_bg = sys.argv[4] == True if len(sys.argv) >= 5 else True
+parser.add_argument('-i', '--input',
+                    type=str,
+                    dest='path',
+                    help='path to ome-tiff')
+
+parser.add_argument('-o', '--output',
+                    type=str,
+                    dest='output',
+                    default='data/miniature.png',
+                    help='file name of output')
+
+parser.add_argument('-l', '--level',
+                    type=int,
+                    dest='level',
+                    default=-1,
+                    help='image pyramid level to use. defaults to -1 (highest)')
+
+parser.add_argument('-r', '--remove_bg',
+                    type=bool,
+                    dest='remove_bg',
+                    default=True,
+                    help='Attempt to remove background (defaults to True)')
+
+args = parser.parse_args()
+
+
 
 print("Loading image")
-tiff = tifffile.TiffFile(path, is_ome=False)
+tiff = tifffile.TiffFile(args.path, is_ome=False)
 tiff_levels = tiff.series[0].levels
-highest_level_tiff = tiff_levels[level]
+highest_level_tiff = tiff_levels[args.level]
 
 zarray = zarr.open(highest_level_tiff.aszarr())
 
@@ -64,17 +88,17 @@ def get_tissue(x):
 def get_all(x):
     return x[everything]
 
-if remove_bg == False:
+if args.remove_bg == False:
     tissue_array = list(map(get_all, zarray))
     print("Preserving background")
     cleaned = everything
-elif remove_bg == True:
+elif args.remove_bg == True:
     tissue_array = list(map(get_tissue, zarray))
     print("Removing background")
 else:
     tissue_array = list(map(get_tissue, zarray))
     print("Removing background")
-    
+
 tissue_array = np.array(tissue_array).T
 
 
@@ -117,11 +141,9 @@ rgb_shape.append(3)
 rgb_image = np.zeros(rgb_shape)
 rgb_image[cleaned] = np.array(rgb)
 
-plt.imshow(rgb_image)
-plt.axis ("off")
+print("Saving image as " + args.output)
+output_path = "data/" + args.output
 
-print("Saving image as " + output)
-
-imsave(output, rgb_image)
+imsave(output_path, rgb_image)
 
 print("Complete!")

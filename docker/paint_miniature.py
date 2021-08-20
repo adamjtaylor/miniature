@@ -15,6 +15,9 @@ from sklearn.preprocessing import MinMaxScaler
 from skimage.filters import threshold_otsu
 from skimage.morphology import remove_small_objects
 from sklearn.manifold import TSNE
+import h5py
+from pathlib import Path
+
 
 
 def str2bool(v):
@@ -125,6 +128,35 @@ def make_rgb_image(rgb, mask):
     rgb_image = np.zeros(rgb_shape)
     rgb_image[mask] = rgb
     return(rgb_image)
+    
+def plot_embedding(embedding, rgb, output):
+    p = Path(output)
+    newp = Path.joinpath(p.parent, p.stem+'-embedding' +p.suffix)
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter3D(
+        embedding[:,0], 
+        embedding[:,1], 
+        embedding[:,2], 
+        c = rgb,
+        edgecolors = 'none'
+        )
+    ax.set_xlabel('Dim 1')
+    ax.set_ylabel('Dim 2')
+    ax.set_zlabel('Dim 3')
+    plt.savefig(newp)
+    
+def save_data(output, args, tissue_array, mask, embedding, rgb, rgb_image):
+    print("Saving log file")
+    p = Path(output)
+    p.rename(p.with_suffix('.h5'))
+    h5 = h5py.File(p, 'w')
+    #h5.create_dataset('args', data = args)
+    h5.create_dataset('mask', data = mask)
+    h5.create_dataset('tissue_array', data = tissue_array)
+    h5.create_dataset('embedding', data = embedding)
+    h5.create_dataset('rgb_array', data = rgb)
+    h5.create_dataset('rgb_image', data = rgb_image)
 
 def main():
 
@@ -157,7 +189,19 @@ def main():
                         type=str,
                         dest='dimred',
                         default='umap',
-                        help='Dimensionality reduction method [umap, tsne]')                    
+                        help='Dimensionality reduction method [umap, tsne]') 
+                        
+    parser.add_argument('--save_data',
+                    type=str2bool,
+                    dest='save_data',
+                    default=False,
+                    help='Save a h5 file with intermediate data')
+                    
+    parser.add_argument('--plot_embedding',
+                    type=str2bool,
+                    dest='plot_embedding',
+                    default=False,
+                    help='Save a figure of the embedding')
     
     args = parser.parse_args()
     
@@ -172,9 +216,7 @@ def main():
     
     if args.dimred == 'tsne':
         embedding = run_tsne(tissue_array)
-    elif args.dimred == 'umap':
-        embedding = run_umap(tissue_array)
-    else:
+    if args.dimred == 'umap':
         embedding = run_umap(tissue_array)
         
     rgb = assign_colours(embedding)
@@ -183,6 +225,11 @@ def main():
     print("Saving image as " + args.output)
     output_path = "data/" + args.output
     imsave(output_path, rgb_image)
+    
+    if args.save_data == True:
+        save_data(output_path, args, tissue_array, mask, embedding, rgb, rgb_image)
+    if args.plot_embedding == True:
+        plot_embedding(embedding, rgb, output_path)
 
     print("Complete!")
     

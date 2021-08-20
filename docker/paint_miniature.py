@@ -14,6 +14,7 @@ from matplotlib.image import imsave
 from sklearn.preprocessing import MinMaxScaler
 from skimage.filters import threshold_otsu
 from skimage.morphology import remove_small_objects
+from sklearn.manifold import TSNE
 
 
 def str2bool(v):
@@ -81,6 +82,16 @@ def run_umap(tissue_array):
     embedding = reducer.fit_transform(tissue_array)
     return(embedding)
     
+def run_tsne(tissue_array):
+    reducer = TSNE(
+        n_components = 3,
+        metric = "correlation",
+        square_distances = True,
+        verbose = True)
+    print("Running t-SNE")
+    embedding = reducer.fit_transform(tissue_array)
+    return(embedding)
+    
 def embedding_to_lab_to_rgb(x):
         #print("Converting embedding to LAB colour")
         lab = LabColor(x[2], x[0], x[1])
@@ -141,6 +152,12 @@ def main():
                         dest='remove_bg',
                         default=True,
                         help='Attempt to remove background (defaults to True)')
+                        
+    parser.add_argument('--dimred',
+                        type=str,
+                        dest='dimred',
+                        default='umap',
+                        help='Dimensionality reduction method [umap, tsne]')                    
     
     args = parser.parse_args()
     
@@ -152,8 +169,14 @@ def main():
         tissue_array, mask = remove_background(zarray)
     else:
         tissue_array, mask = keep_background(zarray)
+    
+    if args.dimred == 'tsne':
+        embedding = run_tsne(tissue_array)
+    elif args.dimred == 'umap':
+        embedding = run_umap(tissue_array)
+    else:
+        embedding = run_umap(tissue_array)
         
-    embedding = run_umap(tissue_array)
     rgb = assign_colours(embedding)
     rgb_image = make_rgb_image(rgb, mask)
     

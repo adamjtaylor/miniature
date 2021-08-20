@@ -162,14 +162,12 @@ def main():
 
     parser = argparse.ArgumentParser(description = 'Paint a miniature from an OME-TIFF')
     
-    parser.add_argument('-i', '--input',
+    parser.add_argument('input',
                         type=str,
-                        dest='input',
-                        help='path to ome-tiff')
+                        help=' a file name, seekable binary stream, or FileHandle for an OME-TIFF')
     
-    parser.add_argument('-o', '--output',
+    parser.add_argument('output',
                         type=str,
-                        dest='output',
                         default='data/miniature.png',
                         help='file name of output')
     

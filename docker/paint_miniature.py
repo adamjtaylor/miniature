@@ -21,6 +21,16 @@ from skimage.morphology import remove_small_objects
 
 # Select the last level of the image pyramid and load as a zarr array. Reshape into a pixels x channels array.
 
+def str2bool(v):
+    if isinstance(v, bool):
+       return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
 parser = argparse.ArgumentParser(description = 'Paint a miniature from a streaming s3 object')
 
 parser.add_argument('-i', '--input',
@@ -41,13 +51,12 @@ parser.add_argument('-l', '--level',
                     help='image pyramid level to use. defaults to -1 (highest)')
 
 parser.add_argument('-r', '--remove_bg',
-                    type=bool,
+                    type=str2bool,
                     dest='remove_bg',
                     default=True,
                     help='Attempt to remove background (defaults to True)')
 
 args = parser.parse_args()
-
 
 
 print("Loading image")
@@ -57,7 +66,7 @@ highest_level_tiff = tiff_levels[args.level]
 
 zarray = zarr.open(highest_level_tiff.aszarr())
 
-print("Opened image pyramid level:", level)
+print("Opened image pyramid level:", args.level)
 print("Image dimensions:", zarray.shape)
 
 
@@ -80,7 +89,7 @@ binary = log_image > thresh
 
 cleaned = remove_small_objects(binary)
 
-everything = np.ones_like(binary, dtype=bool)
+everything = np.ones_like(sum_image, dtype=bool)
 
 def get_tissue(x):
     return x[cleaned]
@@ -96,10 +105,12 @@ elif args.remove_bg == True:
     tissue_array = list(map(get_tissue, zarray))
     print("Removing background")
 else:
-    tissue_array = list(map(get_tissue, zarray))
-    print("Removing background")
+    tissue_array = list(map(get_all, zarray))
+    print("Preserving background")
 
 tissue_array = np.array(tissue_array).T
+
+print("Selected", tissue_array.shape[0], "of", zarray.shape[0]*zarray.shape[1], "pixels as tissue")
 
 
 # ## Perform dimensionality reduction

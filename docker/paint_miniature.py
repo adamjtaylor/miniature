@@ -139,6 +139,7 @@ def plot_embedding(embedding, rgb, output):
         embedding[:,1], 
         embedding[:,2], 
         c = rgb,
+        s = 20,
         edgecolors = 'none'
         )
     ax.set_xlabel('Dim 1')

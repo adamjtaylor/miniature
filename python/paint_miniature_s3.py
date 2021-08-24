@@ -1,14 +1,15 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# Import libraries
+print("Setting up")
 
 import argparse
+import boto3
+import io
 import tifffile
+from tifffile import TiffFile
+import zarr
+import numpy as np
 import zarr
 import sys
 import umap
-import numpy as np
 from colormath.color_objects import LabColor, sRGBColor
 from colormath.color_conversions import convert_color
 import matplotlib.pyplot as plt
@@ -16,68 +17,110 @@ from matplotlib.image import imsave
 from sklearn.preprocessing import MinMaxScaler
 from skimage.filters import threshold_otsu
 from skimage.morphology import remove_small_objects
-import h5py
-
-# ## Extract the highest level of the pyramid
-
-# Select the last level of the image pyramid and load as a zarr array. Reshape into a pixels x channels array.
+from pathlib import Path
 
 parser = argparse.ArgumentParser(description = 'Paint a miniature from a streaming s3 object')
-
-parser.add_argument('-i', '--input',
+parser.add_argument('-b', '--bucket',
+                    dest='bucket',
                     type=str,
-                    dest='path',
-                    help='path to ome-tiff')
-
-parser.add_argument('-o', '--output',
+                    help='name of a s3 bucket that your profile has access to')
+parser.add_argument('-k', '--key',
                     type=str,
-                    dest='output',
-                    default='data/miniature.png',
-                    help='file name of output')
-
+                    dest='key',
+                    help='key for an object in the s3 bucket defined by --bucket. Must be a .ome.tiff file')
+parser.add_argument('-p', '--profile',
+                    type=str,
+                    dest='profile',
+                    help='aws profile to use')
 parser.add_argument('-l', '--level',
                     type=int,
                     dest='level',
                     default=-1,
                     help='image pyramid level to use. defaults to -1 (highest)')
 
-parser.add_argument('-r', '--remove_bg',
-                    type=bool,
-                    dest='remove_bg',
-                    default=-True,
-                    help='Attempt to remove background')
-parser.add_argument('-s', '--save',
-                    type=bool,
-                    dest='save_logs',
-                    default=-True,
-                    help='Save a h5 file with variables and logs file')
-
-
 args = parser.parse_args()
 
 
+# Define a streaming s3 object file class S3File(io.RawIOBase):
+class S3File(io.RawIOBase):
+    """
+    https://alexwlchan.net/2019/02/working-with-large-s3-objects/
+    """
+    def __init__(self, s3_object):
+        self.s3_object = s3_object
+        self.position = 0
 
+    def __repr__(self):
+        return "<%s s3_object=%r>" % (type(self).__name__, self.s3_object)
+
+    @property
+    def size(self):
+        return self.s3_object.content_length
+
+    def tell(self):
+        return self.position
+
+    def seek(self, offset, whence=io.SEEK_SET):
+        if whence == io.SEEK_SET:
+            self.position = offset
+        elif whence == io.SEEK_CUR:
+            self.position += offset
+        elif whence == io.SEEK_END:
+            self.position = self.size + offset
+        else:
+            raise ValueError("invalid whence (%r, should be %d, %d, %d)" % (
+                whence, io.SEEK_SET, io.SEEK_CUR, io.SEEK_END
+            ))
+
+        return self.position
+
+    def seekable(self):
+        return True
+
+    def read(self, size=-1):
+        if size == -1:
+            # Read to the end of the file
+            range_header = "bytes=%d-" % self.position
+            self.seek(offset=0, whence=io.SEEK_END)
+        else:
+            new_position = self.position + size
+
+            # If we're going to read beyond the end of the object, return
+            # the entire object.
+            if new_position >= self.size:
+                return self.read()
+
+            range_header = "bytes=%d-%d" % (self.position, new_position - 1)
+            self.seek(offset=size, whence=io.SEEK_CUR)
+
+        return self.s3_object.get(Range=range_header)["Body"].read()
+
+    def readable(self):
+        return True
+
+# Stream the highest level image
 print("Loading image")
-tiff = tifffile.TiffFile(args.path, is_ome=False)
-tiff_levels = tiff.series[0].levels
-highest_level_tiff = tiff_levels[args.level]
 
-zarray = zarr.open(highest_level_tiff.aszarr())
+session = boto3.session.Session(profile_name=args.profile)
 
-print("Opened image pyramid level:", level)
-print("Image dimensions:", zarray.shape)
+s3 = session.client('s3')
+s3_resource = session.resource('s3')
+
+s3_obj = s3_resource.Object(bucket_name=args.bucket, key=args.key)
+s3_file = S3File(s3_obj)
+
+with TiffFile(s3_file, is_ome=False) as tif:
+  s = tif.series[0].levels[args.level]
+  z = zarr.open(s.aszarr())
+
+# Remove background
+
+print("Removing background")
 
 
-# # Threshold the image
-# Make a sum image. Log this with a pseudocount of the 1st percentile. Otsus threshold
+sum_image = np.array(z).sum(axis = 0)
 
-print("Finding background")
-sum_image = np.array(zarray).sum(axis = 0)
-first_percentile = np.quantile(sum_image, 0.1)
-
-if first_percentile == 0:
-    pseudocount = 1
-else: pseudocount = first_percentile
+pseudocount = 1
 
 log_image = np.log2(sum_image + pseudocount)
 
@@ -87,30 +130,13 @@ binary = log_image > thresh
 
 cleaned = remove_small_objects(binary)
 
-everything = np.ones_like(binary, dtype=bool)
-
 def get_tissue(x):
     return x[cleaned]
 
-def get_all(x):
-    return x[everything]
-
-if args.remove_bg == False:
-    tissue_array = list(map(get_all, zarray))
-    print("Preserving background")
-    cleaned = everything
-elif args.remove_bg == True:
-    tissue_array = list(map(get_tissue, zarray))
-    print("Removing background")
-else:
-    tissue_array = list(map(get_tissue, zarray))
-    print("Removing background")
-
+tissue_array = list(map(get_tissue, z))
 tissue_array = np.array(tissue_array).T
 
-
-# ## Perform dimensionality reduction
-# Reduce the data from channels x pixels to channels x 3 by UMAP with correlation distance
+# Dim reduction
 
 reducer = umap.UMAP(
     n_components = 3,
@@ -148,24 +174,14 @@ rgb_shape.append(3)
 rgb_image = np.zeros(rgb_shape)
 rgb_image[cleaned] = np.array(rgb)
 
-print("Saving image as " + args.output)
-output_path = "data/" + args.output
+print("Saving output")
 
-imsave(output_path, rgb_image)
+output = Path(args.key)
+output = output.with_suffix('.png')
+output = "output/"+ output.name
 
-if args.save_logs == True:
-    print("Saving log file")
-    hf = h5py.File(args.output + ".h5", 'w')
-    h5.create_dataset('args', data = args)
-    h5.create_dataset('sum_image', data = sum_image)
-    h5.create_dataset('log_image', data = log_image)
-    h5.create_dataset('thresh', data = thresh)
-    h5.create_dataset('binary', data = binary)
-    h5.create_dataset('cleaned', data = cleaned)
-    h5.create_dataset('tissue_array', data = tissue_array)
-    h5.create_dataset('embedding', data = embedding)
-    h5.create_dataset('rgb_array', data = rgb)
-    h5.create_dataset('rgb_image', data = rgb_image)
+print(output)
 
+imsave(output, rgb_image)
 
 print("Complete!")

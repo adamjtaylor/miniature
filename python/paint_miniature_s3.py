@@ -114,8 +114,8 @@ if args.s3_bucket_type == "aws":
 if args.s3_bucket_type == "gcs":
   print("Accessing GCS resource")
   s3_resource = boto3.resource("s3", region_name = "auto", endpoint_url = "https://storage.googleapis.com", 
-    aws_access_key_id = "GOOGVWMZMUEZ5A2LGZR4NSDB", 
-    aws_secret_access_key = "HeApd60VtCq/dls3d/CvyyWMuC31C6Zs6OChYH4d"
+    aws_access_key_id = os.environ.get('GC_KEY_ID')
+    aws_secret_access_key = os.environ.get('GC_KEY_SECRET')
     )
 
 print("Getting object")

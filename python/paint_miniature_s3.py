@@ -37,6 +37,11 @@ parser.add_argument('-l', '--level',
                     dest='level',
                     default=-1,
                     help='image pyramid level to use. defaults to -1 (highest)')
+parser.add_argument('--s3_bucket_type',
+                    type=str,
+                    dest='s3_bucket_type',
+                    default="aws",
+                    help='S3 bucket type, [aws, gcs]')
 
 args = parser.parse_args()
 
@@ -101,40 +106,65 @@ class S3File(io.RawIOBase):
 # Stream the highest level image
 print("Loading image")
 
-session = boto3.session.Session(profile_name=args.profile)
+if args.s3_bucket_type == "aws":
+  session = boto3.session.Session(profile_name=args.profile)
+  s3 = session.client('s3')
+  s3_resource = session.resource('s3')
 
-s3 = session.client('s3')
-s3_resource = session.resource('s3')
+if args.s3_bucket_type == "gcs":
+  print("Accessing GCS resource")
+  s3_resource = boto3.resource("s3", region_name = "auto", endpoint_url = "https://storage.googleapis.com", 
+    aws_access_key_id = "GOOGVWMZMUEZ5A2LGZR4NSDB", 
+    aws_secret_access_key = "HeApd60VtCq/dls3d/CvyyWMuC31C6Zs6OChYH4d"
+    )
 
+print("Getting object")
 s3_obj = s3_resource.Object(bucket_name=args.bucket, key=args.key)
+print("Creating streaming s3 file")
 s3_file = S3File(s3_obj)
 
+print("Loading pyramid level", args.level)
 with TiffFile(s3_file, is_ome=False) as tif:
   s = tif.series[0].levels[args.level]
   z = zarr.open(s.aszarr())
 
+print("Image loaded with dimensions:", z.shape)
 # Remove background
 
 print("Removing background")
 
+print("Bring array into memory")
 
-sum_image = np.array(z).sum(axis = 0)
+a = np.array(z)
+
+print("Getting sum image")
+
+sum_image = a.sum(axis = 0)
 
 pseudocount = 1
+print("Log transform")
 
 log_image = np.log2(sum_image + pseudocount)
+print("Finding Otsu's threshold")
 
 thresh = threshold_otsu(log_image)
 
 binary = log_image > thresh
+print("Removing small objects")
 
 cleaned = remove_small_objects(binary)
 
 def get_tissue(x):
     return x[cleaned]
+    
+print("Generating tissue array")
 
-tissue_array = list(map(get_tissue, z))
+tissue_array = list(map(get_tissue, a))
 tissue_array = np.array(tissue_array).T
+
+print("Selected", tissue_array.shape[0], "of", a.shape[1]*a.shape[2], "pixels as tissue")
+print("Pixels x channels matrix prepared")
+print(tissue_array.shape)
 
 # Dim reduction
 

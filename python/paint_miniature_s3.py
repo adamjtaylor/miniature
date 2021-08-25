@@ -113,10 +113,8 @@ if args.s3_bucket_type == "aws":
 
 if args.s3_bucket_type == "gcs":
   print("Accessing GCS resource")
-  s3_resource = boto3.resource("s3", region_name = "auto", endpoint_url = "https://storage.googleapis.com", 
-    aws_access_key_id = os.environ.get('GC_KEY_ID')
-    aws_secret_access_key = os.environ.get('GC_KEY_SECRET')
-    )
+  session = boto3.session.Session(profile_name=args.profile)
+  s3_resource = session.resource('s3',endpoint_url = "https://storage.googleapis.com")
 
 print("Getting object")
 s3_obj = s3_resource.Object(bucket_name=args.bucket, key=args.key)

@@ -207,8 +207,8 @@ def main():
     
     zarray = pull_pyramid(args.input, args.level)
     
-    if zarray.shape[3] == 3:
-        rgb_image = zarray
+    if zarray.shape[0] == 3:
+        rgb_image = np.moveaxis(zarray, 0, -1)
     else: 
         if args.remove_bg == False:
             tissue_array, mask = keep_background(zarray)

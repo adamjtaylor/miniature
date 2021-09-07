@@ -128,6 +128,7 @@ def make_rgb_image(rgb, mask):
     rgb_image = np.zeros(rgb_shape)
     rgb_image[mask] = rgb
     return(rgb_image)
+
     
 def plot_embedding(embedding, rgb, output):
     p = Path(output)
@@ -206,20 +207,24 @@ def main():
     
     zarray = pull_pyramid(args.input, args.level)
     
-    if args.remove_bg == False:
-        tissue_array, mask = keep_background(zarray)
-    elif args.remove_bg == True:
-        tissue_array, mask = remove_background(zarray)
-    else:
-        tissue_array, mask = keep_background(zarray)
-    
-    if args.dimred == 'tsne':
-        embedding = run_tsne(tissue_array)
-    if args.dimred == 'umap':
-        embedding = run_umap(tissue_array)
+    if zarray.shape[0] == 3:
+        rgb_image = np.moveaxis(zarray, 0, -1)
+    else: 
+        if args.remove_bg == False:
+            tissue_array, mask = keep_background(zarray)
+        elif args.remove_bg == True:
+            tissue_array, mask = remove_background(zarray)
+        else:
+            tissue_array, mask = keep_background(zarray)
         
-    rgb = assign_colours(embedding)
-    rgb_image = make_rgb_image(rgb, mask)
+        if args.dimred == 'tsne':
+            embedding = run_tsne(tissue_array)
+        if args.dimred == 'umap':
+            embedding = run_umap(tissue_array)
+            
+        rgb = assign_colours(embedding)
+        rgb_image = make_rgb_image(rgb, mask)
+     
     
     print("Saving image as " + args.output)
     output_path = "data/" + args.output

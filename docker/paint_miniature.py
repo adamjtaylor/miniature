@@ -68,7 +68,6 @@ def keep_background(zarray):
     everything = np.ones(shape, dtype=bool)
     def get_all(x):
         return x[everything]
-    return(everything)
     tissue_array = list(map(get_all, zarray))
     tissue_array = np.array(tissue_array).T
     print("Pixels x channels matrix prepared")

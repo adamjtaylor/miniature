@@ -49,7 +49,7 @@ def remove_background(zarray):
     sum_image = np.array(zarray).sum(axis = 0)
     pseudocount = 1
     log_image = np.log2(sum_image + pseudocount)
-    thresh = threshold_otsu(log_image)
+    thresh = threshold_otsu(log_image[log_image > 0])
     binary = log_image > thresh
     cleaned = remove_small_objects(binary)
     print("Background removed")

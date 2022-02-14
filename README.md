@@ -33,6 +33,11 @@ cd docker
 sudo docker-compose run --rm app
 ```
 
+Or from the docker image
+```
+docker run -it --rm --platform linux/amd64 -v <local-path>:/data adamjtaylor/htan-artist
+```
+
 Once in the container run
 ```
 python paint_miniature.py data/<input-file-name> <output-file-name>

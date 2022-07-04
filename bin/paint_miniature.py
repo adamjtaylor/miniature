@@ -28,7 +28,6 @@ from scipy.spatial.distance import pdist
 from pathlib import Path
 from PIL import Image
 import mantel
-import csv
         
 def pull_pyramid(input, level):
     print("Loading image")
@@ -346,11 +345,6 @@ def main():
         print(embedding.shape())
         exit
 
-    p = Path(args.output)
-    logp = Path.joinpath(p.parent, p.stem+"-log.csv" )
-    output = csv.writer(open(logp, 'w'))
-    output.writerow(['input', 'key', 'value'])
-
     if args.save_data:
         h5_path = Path(args.output)
         h5_path = Path.joinpath(h5_path.parent, h5_path.stem+ ".h5")
@@ -358,8 +352,6 @@ def main():
         h5color = h5file.create_group('colors')
     
     zarray = pull_pyramid(args.input, args.level)
-
-    output.writerow([args.input, 'zarray_shape', zarray.shape])
     
     if zarray.shape[0] == 3:
         rgb_image = np.moveaxis(zarray, 0, -1)
@@ -404,8 +396,6 @@ def main():
         if args.save_data:
             h5file.create_dataset('tissue_array', data = tissue_array)
         
-        output.writerow([args.input, 'tissue_array_shape', tissue_array.shape])
-
         if args.dimred == 'tsne':
             embedding = run_tsne(tissue_array, args.n_components, args.metric)
         if args.dimred == 'umap':

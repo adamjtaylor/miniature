@@ -6,7 +6,8 @@ params.outdir = 'outputs'
 process make_miniature {
     cpus 2
     memory '2 GB'
-    conda '/Users/ataylor/miniforge3/envs/miniature'
+    //conda '/Users/ataylor/miniforge3/envs/miniature'
+    
     publishDir "$params.outdir/$dimred/$metric/$scaler/${n_components}d/$colormap/$log_arg/", mode: 'copy'
     input:
         tuple file(filename), val(dimred), val(metric), val(log_arg), val(n_components), val(colormap), val(scaler)

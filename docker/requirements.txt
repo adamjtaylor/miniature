@@ -1,0 +1,14 @@
+numpy
+pandas
+Pillow
+matplotlib
+tifffile
+imagecodecs
+scikit-image
+scikit-learn
+zarr
+umap-learn
+colormath
+h5py
+imagemagick
+mantel

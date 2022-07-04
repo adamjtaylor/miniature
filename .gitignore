@@ -2,3 +2,5 @@
 samplesheet.csv
 .nextflow*
 work/
+inputs/
+outputs/

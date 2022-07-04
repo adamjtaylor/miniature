@@ -147,8 +147,8 @@ def assign_colours_rgb(embedding):
     print("RGB assigned")
     return(rgb)
 
-
-imgFolder = "/Users/ataylor/Documents/projects/htan/miniature/bin/colormaps/"
+imgFolder = "colormaps/"
+print(os.path.abspath('.'))
 
 dimensions = {
     'width': 512,

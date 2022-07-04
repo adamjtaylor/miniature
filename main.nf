@@ -2,10 +2,11 @@ nextflow.enable.dsl=2
 
 params.samplesheet = 'samplesheet.csv'
 params.outdir = 'outputs'
+params.colormaps = '/bin/colormaps'
 
 process make_miniature {
-    cpus 2
-    memory '2 GB'
+    //cpus 2
+    //memory '2 GB'
     //conda '/Users/ataylor/miniforge3/envs/miniature'
     
     publishDir "$params.outdir/$dimred/$metric/$scaler/${n_components}d/$colormap/$log_arg/", mode: 'copy'
@@ -17,6 +18,7 @@ process make_miniature {
 
     script:
     """
+    cp -r ${projectDir}/$params.colormaps .
     paint_miniature.py $filename miniature.png --dimred $dimred --n_components $n_components --colormap $colormap --metric $metric --scaler $scaler --plot_embedding $log_arg --level -1 --save_data
     """
 
@@ -27,9 +29,9 @@ process make_miniature {
 }
 
 process calc_metrics {
-    cpus 2
-    memory '2 GB'
-    conda '/Users/ataylor/miniforge3/envs/miniature'
+   // cpus 2
+    //memory '2 GB'
+    //conda '/Users/ataylor/miniforge3/envs/miniature'
     publishDir "$params.outdir/$dimred/$metric/$scaler/${n_components}d/$colormap/$log_arg/", mode: 'copy'
     input:
         tuple file(h5), val(dimred), val(metric), val(log_arg), val(n_components), val(colormap), val(scaler)

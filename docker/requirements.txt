@@ -1,9 +1,8 @@
-numpy
 pandas
 Pillow
 matplotlib
 tifffile
-imagecodecs
+numpy
 scikit-image
 scikit-learn
 zarr

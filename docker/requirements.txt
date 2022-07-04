@@ -10,5 +10,4 @@ zarr
 umap-learn
 colormath
 h5py
-imagemagick
 mantel

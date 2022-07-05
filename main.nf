@@ -9,7 +9,7 @@ colormaps = file("$workflow.projectDir/assets/colormaps/", checkIfExists: true)
 
 process make_miniature {
     label "process_high"
-    publishDir "$params.outdir/$dimred/$metric/$scaler/${n_components}d/$colormap/$log_arg/", mode: 'copy'
+    publishDir "$params.outdir/$dimred/$metric/$scaler/${n_components}d/$colormap/$log_arg/", mode: 'copy', overwrite: true
     input:
         tuple file(filename), val(dimred), val(metric), val(log_arg), val(n_components), val(colormap), val(scaler)
         file (colormaps)
@@ -30,7 +30,7 @@ process make_miniature {
 
 process calc_metrics {
     label "process_high"
-    publishDir "$params.outdir/$dimred/$metric/$scaler/${n_components}d/$colormap/$log_arg/", mode: 'copy'
+    publishDir "$params.outdir/$dimred/$metric/$scaler/${n_components}d/$colormap/$log_arg/", mode: 'copy', overwrite: true
     input:
         tuple file(h5), val(dimred), val(metric), val(log_arg), val(n_components), val(colormap), val(scaler)
     output:

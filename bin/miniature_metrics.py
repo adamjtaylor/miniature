@@ -121,16 +121,16 @@ def main():
     output = h5py.File('metrics.h5','w')
 
             
-    n = tissue_array.shape[0]
+    n = 128
 
     print(f'Calculating embedding trustworthiness from {n} pixels')
-    sampled_rows = np.random.randint(tissue_array.shape[0], size = n)
+    #sampled_rows = np.random.sample(range(tissue_array.shape[0]), n)
+    sampled_rows = range(tissue_array.shape[0])
     trust = trustworthiness(tissue_array[sampled_rows,:], embedding[sampled_rows,:], metric = args.metric)
     print(f'Trustworthiness = {trust}')
 
     output.create_dataset('embedding_trust', data = trust)
 
-    sampled_rows = np.random.randint(tissue_array.shape[0], size = n)
     print('Calculating distance matrix in high dimensional space')
     original_dist = pdist(tissue_array[sampled_rows,:], metric = args.metric)
 

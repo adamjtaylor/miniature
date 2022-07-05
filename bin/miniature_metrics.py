@@ -111,6 +111,10 @@ def main():
     parser.add_argument('--metric',
                         type=str,
                         help=' Metric used for the embedding')
+    parser.add_argument('--n',
+                        type=int,
+                        default = 256,
+                        help='Number of samples to use')
 
     args = parser.parse_args()
 
@@ -121,10 +125,10 @@ def main():
     output = h5py.File('metrics.h5','w')
 
             
-    n = 128
+    n = args.n
 
     print(f'Calculating embedding trustworthiness from {n} pixels')
-    #sampled_rows = np.random.sample(range(tissue_array.shape[0]), n)
+    sampled_rows = np.random.sample(range(tissue_array.shape[0]), n)
     sampled_rows = range(tissue_array.shape[0])
     trust = trustworthiness(tissue_array[sampled_rows,:], embedding[sampled_rows,:], metric = args.metric)
     print(f'Trustworthiness = {trust}')

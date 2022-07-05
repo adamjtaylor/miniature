@@ -39,7 +39,7 @@ process calc_metrics {
 
     script:
     """
-    miniature_metrics.py $h5 --metric $metric -n $params.n
+    miniature_metrics.py $h5 --metric $metric --n $params.n
     """
 
 }

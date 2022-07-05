@@ -121,7 +121,7 @@ def main():
     output = h5py.File('metrics.h5','w')
 
             
-    n = 128
+    n = tissue_array.shape[0]
 
     print(f'Calculating embedding trustworthiness from {n} pixels')
     sampled_rows = np.random.randint(tissue_array.shape[0], size = n)
@@ -140,6 +140,10 @@ def main():
     embedding_dist = pdist(embedding[sampled_rows,:], metric = 'euclidean')
     output.create_dataset('embedding_dist', data = embedding_dist)
 
+    embedding_correlation = spearmanr(original_dist, embedding_dist)
+    print(embedding_correlation)
+    output.create_dataset('embedding_correlation', data = embedding_correlation)
+
     for c in h5file['colors'].keys():
         rgb = np.array(h5file['colors'][c])
         print(f'Calculating perceptual trustworthiness of {c} from {n} pixels')
@@ -156,14 +160,14 @@ def main():
         perceptial_dist = pdist(rgb[sampled_rows,:], metric = delta_e_cie2000_metric)
         output_colors.create_dataset('perceptial_dist', data = perceptial_dist)
 
-        sp_array_color = spearmanr(original_dist, perceptial_dist)
+        perceptual_correlation = spearmanr(original_dist, perceptial_dist)
         print(sp_array_color)
+        output_colors.create_dataset('perceptual_correlation', data = perceptual_correlation)
 
-        sp_array_color = spearmanr(embedding_dist, perceptial_dist)
+        perceptual_embedding_correlation = spearmanr(embedding_dist, perceptial_dist)
         print(sp_array_color)
+        output_colors.create_dataset('perceptual_embedding_correlation', data = perceptual_embedding_correlation)
 
-        sp_array_color = spearmanr(original_dist, embedding_dist)
-        print(sp_array_color)
         #embedding_v_perceptial = mantel.test(low_d_dist,perceptial_dist)
         #tissue_v_perceptial = mantel.test(high_d_dist, perceptial_dist)
         #print('Mantel test of embedding vs deltE:')

@@ -2,7 +2,7 @@ nextflow.enable.dsl=2
 
 params.samplesheet = 'samplesheet.csv'
 params.outdir = 'outputs'
-params.colormaps = '/bin/colormaps'
+params.colormaps = 'bin/colormaps'
 
 process make_miniature {
     //cpus 2

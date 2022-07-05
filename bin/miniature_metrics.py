@@ -128,8 +128,8 @@ def main():
     n = args.n
 
     print(f'Calculating embedding trustworthiness from {n} pixels')
-    sampled_rows = np.random.sample(range(tissue_array.shape[0]), n)
-    sampled_rows = range(tissue_array.shape[0])
+    sampled_rows = np.random.choice(len(tissue_array),n,replace=False)
+    #sampled_rows = range(tissue_array.shape[0])
     trust = trustworthiness(tissue_array[sampled_rows,:], embedding[sampled_rows,:], metric = args.metric)
     print(f'Trustworthiness = {trust}')
 

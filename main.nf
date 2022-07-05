@@ -2,6 +2,7 @@ nextflow.enable.dsl=2
 
 params.samplesheet = 'samplesheet.csv'
 params.outdir = 'outputs'
+params.n = 1024
 //params.colormaps = '/home/ubuntu/miniature/bin/colormaps'
 
 // Stage colormaps
@@ -38,7 +39,7 @@ process calc_metrics {
 
     script:
     """
-    miniature_metrics.py $h5 --metric $metric
+    miniature_metrics.py $h5 --metric $metric -n $params.n
     """
 
 }

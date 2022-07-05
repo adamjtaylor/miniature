@@ -20,7 +20,7 @@ process make_miniature {
 
     script:
     """
-    paint_miniature.py $filename miniature.png --dimred $dimred --n_components $n_components --colormap $colormap --metric $metric --scaler $scaler --plot_embedding $log_arg --level -1 --save_data
+    paint_miniature.py $filename ${filename.simpleName}.png --dimred $dimred --n_components $n_components --colormap $colormap --metric $metric --scaler $scaler --plot_embedding $log_arg --level -1 --save_data
     """
 
     stub:

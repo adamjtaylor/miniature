@@ -165,11 +165,11 @@ def main():
         output_colors.create_dataset('perceptial_dist', data = perceptial_dist)
 
         perceptual_correlation = spearmanr(original_dist, perceptial_dist)
-        print(sp_array_color)
+        print(perceptual_correlation)
         output_colors.create_dataset('perceptual_correlation', data = perceptual_correlation)
 
         perceptual_embedding_correlation = spearmanr(embedding_dist, perceptial_dist)
-        print(sp_array_color)
+        print(perceptual_embedding_correlation)
         output_colors.create_dataset('perceptual_embedding_correlation', data = perceptual_embedding_correlation)
 
         #embedding_v_perceptial = mantel.test(low_d_dist,perceptial_dist)

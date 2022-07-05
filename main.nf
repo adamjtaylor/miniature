@@ -3,6 +3,7 @@ nextflow.enable.dsl=2
 params.samplesheet = 'samplesheet.csv'
 params.outdir = 'outputs'
 params.n = 1024
+params.max_size = 1024
 //params.colormaps = '/home/ubuntu/miniature/bin/colormaps'
 
 // Stage colormaps
@@ -20,7 +21,18 @@ process make_miniature {
 
     script:
     """
-    paint_miniature.py $filename ${filename.simpleName}.png --dimred $dimred --n_components $n_components --colormap $colormap --metric $metric --scaler $scaler --plot_embedding $log_arg --level -1 --save_data
+    paint_miniature.py $filename ${filename.simpleName}.png \
+    --dimred $dimred \
+    --n_components \
+    $n_components \
+    --colormap $colormap \
+    --metric $metric \
+    --scaler $scaler \
+    --plot_embedding \
+    $log_arg \
+    --level -1 \
+    --save_data \
+    --max_size $params.max_size
     """
 
     stub:

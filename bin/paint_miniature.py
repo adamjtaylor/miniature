@@ -20,6 +20,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import RobustScaler
 from skimage.filters import threshold_otsu
 from skimage.morphology import remove_small_objects
+from skimage.transform import pyramid_gaussian
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn.manifold import trustworthiness
@@ -311,7 +312,10 @@ def main():
                         default = "euclidean",
                         choices= ['braycurtis', 'canberra', 'chebyshev', 'correlation', 'cosine', 'dice', 'euclidean', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'minkowski', 'russellrao', 'sokalmichener', 'sokalsneath', 'yule'],
                         help = 'Metric to  use for UMAP and tSNE')
-
+    parser.add_argument('--max_size',
+                        type = int,
+                        default = 1024,
+                        help = 'Rescale to nearest 2x pyramid level if larger than this size')
                         
     parser.add_argument('--save_data',
                     dest='save_data',
@@ -352,6 +356,17 @@ def main():
         h5color = h5file.create_group('colors')
     
     zarray = pull_pyramid(args.input, args.level)
+
+    if np.max(zarray.shape) > args.max_size:
+        pyramid = tuple(pyramid_gaussian(zarray, downscale=2, channel_axis=0))
+        for i, p in enumerate(pyramid):
+            print(p.shape)
+            m = np.max(p.shape)
+            if m < args.max_size:
+                level = i
+                break
+        print(f'selecting level {level}: {pyramid[level].shape}')
+        zarray = pyramid[level]
     
     if zarray.shape[0] == 3:
         rgb_image = np.moveaxis(zarray, 0, -1)

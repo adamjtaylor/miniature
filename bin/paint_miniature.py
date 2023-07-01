@@ -477,7 +477,10 @@ def main():
 
             print(f"Saving image as {c}_{args.output}")
             p = Path(args.output)
-            newp = Path.joinpath(p.parent, p.stem+"_" + c +p.suffix)
+            if args.colormap == "ALL":
+                newp = Path.joinpath(p.parent, p.stem+"_" + c +p.suffix)
+            else:
+                newp = p
             im = Image.fromarray(rgb_image, 'RGB')
             im.save(newp)
 

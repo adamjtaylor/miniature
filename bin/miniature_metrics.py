@@ -11,6 +11,9 @@ from scipy.stats import spearmanr
 from colormath.color_objects import LabColor, sRGBColor
 from colormath.color_conversions import convert_color
 from colormath.color_diff import delta_e_cie2000
+from pathlib import Path
+import matplotlib.pyplot as plt
+
 
 def delta_e_cie2000_metric(rgb1,rgb2):
         color1 = sRGBColor(rgb1[0], rgb1[1], rgb1[2])
@@ -111,10 +114,6 @@ def main():
     parser.add_argument('--metric',
                         type=str,
                         help=' Metric used for the embedding')
-    parser.add_argument('--n',
-                        type=int,
-                        default = 256,
-                        help='Number of samples to use')
 
     args = parser.parse_args()
 
@@ -125,16 +124,16 @@ def main():
     output = h5py.File('metrics.h5','w')
 
             
-    n = args.n
+    n = 128
 
     print(f'Calculating embedding trustworthiness from {n} pixels')
-    sampled_rows = np.random.choice(len(tissue_array),n,replace=False)
-    #sampled_rows = range(tissue_array.shape[0])
+    sampled_rows = np.random.randint(tissue_array.shape[0], size = n)
     trust = trustworthiness(tissue_array[sampled_rows,:], embedding[sampled_rows,:], metric = args.metric)
     print(f'Trustworthiness = {trust}')
 
     output.create_dataset('embedding_trust', data = trust)
 
+    sampled_rows = np.random.randint(tissue_array.shape[0], size = n)
     print('Calculating distance matrix in high dimensional space')
     original_dist = pdist(tissue_array[sampled_rows,:], metric = args.metric)
 
@@ -143,10 +142,6 @@ def main():
     print('Calculating distance matrix in low dimensional space')
     embedding_dist = pdist(embedding[sampled_rows,:], metric = 'euclidean')
     output.create_dataset('embedding_dist', data = embedding_dist)
-
-    embedding_correlation = spearmanr(original_dist, embedding_dist)
-    print(embedding_correlation)
-    output.create_dataset('embedding_correlation', data = embedding_correlation)
 
     for c in h5file['colors'].keys():
         rgb = np.array(h5file['colors'][c])
@@ -164,35 +159,36 @@ def main():
         perceptial_dist = pdist(rgb[sampled_rows,:], metric = delta_e_cie2000_metric)
         output_colors.create_dataset('perceptial_dist', data = perceptial_dist)
 
-        perceptual_correlation = spearmanr(original_dist, perceptial_dist)
-        print(perceptual_correlation)
-        output_colors.create_dataset('perceptual_correlation', data = perceptual_correlation)
+        sp_array_color = spearmanr(original_dist, perceptial_dist)
+        print(sp_array_color)
 
-        perceptual_embedding_correlation = spearmanr(embedding_dist, perceptial_dist)
-        print(perceptual_embedding_correlation)
-        output_colors.create_dataset('perceptual_embedding_correlation', data = perceptual_embedding_correlation)
+        sp_array_color = spearmanr(embedding_dist, perceptial_dist)
+        print(sp_array_color)
 
-        #embedding_v_perceptial = mantel.test(low_d_dist,perceptial_dist)
-        #tissue_v_perceptial = mantel.test(high_d_dist, perceptial_dist)
-        #print('Mantel test of embedding vs deltE:')
-        #print(embedding_v_perceptial)
+        sp_array_color = spearmanr(original_dist, embedding_dist)
+        print(sp_array_color)
+        embedding_v_perceptial = mantel.test(embedding_dist,perceptial_dist)
+        tissue_v_perceptial = mantel.test(original_dist, perceptial_dist)
+        print('Mantel test of embedding vs deltE:')
+        print(embedding_v_perceptial)
         #output.writerow([args.input, f'{c}_lowd_mantel_p', embedding_v_perceptial.p])
-        #print(f'p<0.05: {embedding_v_perceptial.p < 0.05}')
-        #print('Mantel test of tissue array vs deltE:')
-        #print(tissue_v_perceptial)
-        #print(f'p<0.05: {tissue_v_perceptial.p < 0.05}')
-        #newp = Path.joinpath(p.parent, p.stem+ c+ "_array_v_perceptial" +p.suffix)            
-        #fig,ax = plt.subplots()
-        #ax = plt.scatter(high_d_dist, perceptial_dist, marker = ".", s = 0.1)
-        #plt.xlabel(f'{args.metric} distance')
-        #plt.ylabel('deltaE 2000')
-        #fig.savefig(newp)
-        #newp = Path.joinpath(p.parent, p.stem+ c+ "_embedding_v_perceptial" +p.suffix) 
-        #fig,ax = plt.subplots()
-        #ax = plt.scatter(low_d_dist, perceptial_dist, marker = ".", s = 0.1)
-        #plt.xlabel(f'euclidean distance')
-        #plt.ylabel('deltaE 2000')
-        #fig.savefig(newp)
+        print(f'p<0.05: {embedding_v_perceptial.p < 0.05}')
+        print('Mantel test of tissue array vs deltE:')
+        print(tissue_v_perceptial)
+        print(f'p<0.05: {tissue_v_perceptial.p < 0.05}')
+        p = Path(args.input)
+        newp = Path.joinpath(p.parent, p.stem+ c+ "_array_v_perceptial" + ".png")            
+        fig,ax = plt.subplots()
+        ax = plt.scatter(original_dist, perceptial_dist, marker = ".", s = 0.1)
+        plt.xlabel(f'{args.metric} distance')
+        plt.ylabel('deltaE 2000')
+        fig.savefig(newp)
+        newp = Path.joinpath(p.parent, p.stem+ c+ "_embedding_v_perceptial" + ".png") 
+        fig,ax = plt.subplots()
+        ax = plt.scatter(embedding_dist, perceptial_dist, marker = ".", s = 0.1)
+        plt.xlabel(f'euclidean distance')
+        plt.ylabel('deltaE 2000')
+        fig.savefig(newp)
 
     h5file.close()
     output.close()

@@ -20,7 +20,6 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.preprocessing import RobustScaler
 from skimage.filters import threshold_otsu
 from skimage.morphology import remove_small_objects
-from skimage.transform import pyramid_gaussian
 from sklearn.manifold import TSNE
 from sklearn.decomposition import PCA
 from sklearn.manifold import trustworthiness
@@ -29,6 +28,12 @@ from scipy.spatial.distance import pdist
 from pathlib import Path
 from PIL import Image
 import mantel
+import csv
+import rpy2.robjects as ro
+from rpy2.robjects.packages import importr
+from rpy2.robjects import pandas2ri
+#ucie = importr('ucie')
+from ucie_module import ucie
         
 def pull_pyramid(input, level):
     print("Loading image")
@@ -148,8 +153,24 @@ def assign_colours_rgb(embedding):
     print("RGB assigned")
     return(rgb)
 
-imgFolder = "colormaps/"
-print(os.path.abspath('.'))
+def assign_colours_ucie(embedding):
+    print("Assigning colours to pixels embedding in low dimensional space using U-CIE")
+    print("Rescaling embedding")
+    rescaled_embedding = np.interp(embedding, (embedding.min(), embedding.max()), (0, 1))
+    
+    with (ro.default_converter + pandas2ri.converter).context():
+        lab = ucie.data2cielab(rescaled_embedding, LAB_coordinates = True)
+    lab = lab.drop('names',axis = 1).to_numpy()
+
+    lab_list = lab.tolist()
+    
+    rgb = list(map(embedding_to_rgb, lab_list))
+    rgb = np.array(rgb) 
+    print(rgb.max())
+    print("RGB assigned")
+    return(rgb)
+
+imgFolder = "./bin/colormaps/"
 
 dimensions = {
     'width': 512,
@@ -202,6 +223,8 @@ def assign_colours_2d(embedding,colormap_ar):
     rgb = list(map(getColor, rescaled_embedding_list, repeat(colormap_ar)))
     rgb = np.array(rgb) / 255
     return(rgb)
+
+
     
 def make_rgb_image(rgb, mask):
     print("Painting miniature")
@@ -312,10 +335,7 @@ def main():
                         default = "euclidean",
                         choices= ['braycurtis', 'canberra', 'chebyshev', 'correlation', 'cosine', 'dice', 'euclidean', 'hamming', 'jaccard', 'kulsinski', 'mahalanobis', 'minkowski', 'russellrao', 'sokalmichener', 'sokalsneath', 'yule'],
                         help = 'Metric to  use for UMAP and tSNE')
-    parser.add_argument('--max_size',
-                        type = int,
-                        default = 1024,
-                        help = 'Rescale to nearest 2x pyramid level if larger than this size')
+
                         
     parser.add_argument('--save_data',
                     dest='save_data',
@@ -334,7 +354,7 @@ def main():
                     type=str,
                     dest='colormap',
                     default='ALL',
-                    choices= ['ALL', 'BREMM', 'SCHUMANN', 'STEIGER', 'TEULING2', 'ZIEGLER','CUBEDIAGONAL','LAB','RGB'],
+                    choices= ['ALL', 'BREMM', 'SCHUMANN', 'STEIGER', 'TEULING2', 'ZIEGLER','CUBEDIAGONAL','LAB','RGB','UCIE'],
                     help='Colormap to use. For 2D plots this can be BREMM, SCHUMANN, STEIGER, TEULING2, ZEIGLER. For 3D this can be RGB or LAB')
     
     args = parser.parse_args()
@@ -349,6 +369,11 @@ def main():
         print(embedding.shape())
         exit
 
+    p = Path(args.output)
+    logp = Path.joinpath(p.parent, p.stem+"-log.csv" )
+    output = csv.writer(open(logp, 'w'))
+    output.writerow(['input', 'key', 'value'])
+
     if args.save_data:
         h5_path = Path(args.output)
         h5_path = Path.joinpath(h5_path.parent, h5_path.stem+ ".h5")
@@ -357,16 +382,7 @@ def main():
     
     zarray = pull_pyramid(args.input, args.level)
 
-    if np.max(zarray.shape) > args.max_size:
-        pyramid = tuple(pyramid_gaussian(zarray, downscale=2, channel_axis=0))
-        for i, p in enumerate(pyramid):
-            print(p.shape)
-            m = np.max(p.shape)
-            if m < args.max_size:
-                level = i
-                break
-        print(f'selecting level {level}: {pyramid[level].shape}')
-        zarray = pyramid[level]
+    output.writerow([args.input, 'zarray_shape', zarray.shape])
     
     if zarray.shape[0] == 3:
         rgb_image = np.moveaxis(zarray, 0, -1)
@@ -411,6 +427,8 @@ def main():
         if args.save_data:
             h5file.create_dataset('tissue_array', data = tissue_array)
         
+        output.writerow([args.input, 'tissue_array_shape', tissue_array.shape])
+
         if args.dimred == 'tsne':
             embedding = run_tsne(tissue_array, args.n_components, args.metric)
         if args.dimred == 'umap':
@@ -422,7 +440,7 @@ def main():
             h5file.create_dataset('embedding', data = embedding)
 
         if args.colormap == "ALL" and args.n_components == 3:
-            selected_colormap = ['LAB','RGB']
+            selected_colormap = ['LAB','RGB','UCIE']
         elif args.colormap == "ALL" and args.n_components ==2 :
             selected_colormap = ['BREMM', 'SCHUMANN', 'STEIGER', 'TEULING2', 'ZIEGLER','CUBEDIAGONAL']
         else: 
@@ -436,6 +454,8 @@ def main():
                 if c == 'LAB':
                     rgb = assign_colours_lab(embedding)
                     print('Colors assigned')
+                elif c == 'UCIE':
+                    rgb = ucie(embedding)
                 elif c == 'RGB':
                     rgb = assign_colours_rgb(embedding)
                     print('Colors assigned')

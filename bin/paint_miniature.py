@@ -29,10 +29,7 @@ from pathlib import Path
 from PIL import Image
 import mantel
 import csv
-import rpy2.robjects as ro
-from rpy2.robjects.packages import importr
-from rpy2.robjects import pandas2ri
-#ucie = importr('ucie')
+from itertools import repeat
 from ucie_module import ucie
         
 def pull_pyramid(input, level):
@@ -153,23 +150,6 @@ def assign_colours_rgb(embedding):
     print("RGB assigned")
     return(rgb)
 
-def assign_colours_ucie(embedding):
-    print("Assigning colours to pixels embedding in low dimensional space using U-CIE")
-    print("Rescaling embedding")
-    rescaled_embedding = np.interp(embedding, (embedding.min(), embedding.max()), (0, 1))
-    
-    with (ro.default_converter + pandas2ri.converter).context():
-        lab = ucie.data2cielab(rescaled_embedding, LAB_coordinates = True)
-    lab = lab.drop('names',axis = 1).to_numpy()
-
-    lab_list = lab.tolist()
-    
-    rgb = list(map(embedding_to_rgb, lab_list))
-    rgb = np.array(rgb) 
-    print(rgb.max())
-    print("RGB assigned")
-    return(rgb)
-
 imgFolder = "./bin/colormaps/"
 
 dimensions = {
@@ -209,7 +189,6 @@ def getColor(e,colormap_ar):
     rgb = colormap_ar.getpixel((scaled_x,scaled_y))
     return(rgb)
 
-from itertools import repeat
 
 def assign_colours_2d(embedding,colormap_ar):
     print("Assigning colours to pixels embedding in low dimensional space")
@@ -224,8 +203,6 @@ def assign_colours_2d(embedding,colormap_ar):
     rgb = np.array(rgb) / 255
     return(rgb)
 
-
-    
 def make_rgb_image(rgb, mask):
     print("Painting miniature")
     rgb_shape = list(mask.shape)

@@ -10,3 +10,5 @@ umap-learn
 colormath
 h5py
 mantel
+pip
+imagemagick

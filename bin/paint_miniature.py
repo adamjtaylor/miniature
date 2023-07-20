@@ -31,6 +31,7 @@ import mantel
 import csv
 from itertools import repeat
 from ucie_module import ucie
+import multiprocessing
         
 def pull_pyramid(input, level):
     print("Loading image")
@@ -127,7 +128,20 @@ def assign_colours_lab(embedding):
     rescaled_embedding = np.concatenate((dim1,dim2,dim3), axis = 1)
     rescaled_embedding_list = rescaled_embedding.tolist()
     
-    rgb = list(map(embedding_to_lab_to_rgb, rescaled_embedding_list))
+        # Get the number of available CPU cores
+    num_processes = multiprocessing.cpu_count() - 1
+    print(f'Using {num_processes} cores ')
+
+    # Create a multiprocessing Pool with the number of processes
+    pool = multiprocessing.Pool(processes=num_processes)
+
+    # Apply the function to the list of items using the Pool
+    print(f'Assigning colours')
+    rgb = list(pool.map(embedding_to_lab_to_rgb, rescaled_embedding_list))
+
+    # Close the Pool and wait for all the processes to complete
+    pool.close()
+    pool.join()
     rgb = np.array(rgb)
     print("LAB Color assigned")
     return(rgb)
@@ -143,8 +157,20 @@ def assign_colours_rgb(embedding):
     rescaled_embedding = np.concatenate((dim1,dim2,dim3), axis = 1)
     rescaled_embedding_list = rescaled_embedding.tolist()
     
-    # TODO use a different mapping function
-    rgb = list(map(embedding_to_rgb, rescaled_embedding_list))
+    # Get the number of available CPU cores
+    num_processes = multiprocessing.cpu_count() - 1
+    print(f'Using {num_processes} cores ')
+
+    # Create a multiprocessing Pool with the number of processes
+    pool = multiprocessing.Pool(processes=num_processes)
+
+    # Apply the function to the list of items using the Pool
+    print(f'Assigning colours')
+    rgb = list(pool.map(embedding_to_rgb, rescaled_embedding_list))
+
+    # Close the Pool and wait for all the processes to complete
+    pool.close()
+    pool.join()
     rgb = np.array(rgb) 
     print(rgb.max())
     print("RGB assigned")
@@ -347,9 +373,9 @@ def main():
         exit
 
     p = Path(args.output)
-    logp = Path.joinpath(p.parent, p.stem+"-log.csv" )
-    output = csv.writer(open(logp, 'w'))
-    output.writerow(['input', 'key', 'value'])
+    #logp = Path.joinpath(p.parent, p.stem+"-log.csv" )
+    #output = csv.writer(open(logp, 'w'))
+    #output.writerow(['input', 'key', 'value'])
 
     if args.save_data:
         h5_path = Path(args.output)
@@ -359,7 +385,7 @@ def main():
     
     zarray = pull_pyramid(args.input, args.level)
 
-    output.writerow([args.input, 'zarray_shape', zarray.shape])
+    #output.writerow([args.input, 'zarray_shape', zarray.shape])
     
     if zarray.shape[0] == 3:
         rgb_image = np.moveaxis(zarray, 0, -1)
@@ -404,7 +430,7 @@ def main():
         if args.save_data:
             h5file.create_dataset('tissue_array', data = tissue_array)
         
-        output.writerow([args.input, 'tissue_array_shape', tissue_array.shape])
+        #output.writerow([args.input, 'tissue_array_shape', tissue_array.shape])
 
         if args.dimred == 'tsne':
             embedding = run_tsne(tissue_array, args.n_components, args.metric)

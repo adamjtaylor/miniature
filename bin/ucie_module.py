@@ -214,12 +214,11 @@ def ucie(embedding,):
     print('Generating target colorspace')
     lab_polygon = generate_lab_grid()
    
-    lims = np.quantile(embedding,[0.1,0.9],axis=0)
+    lims = np.quantile(embedding,[0,1],axis=0)
 
     outliers = (embedding[:,0]> lims[0][0]) & (embedding[:,1]> lims[0][1]) & (embedding[:,2]> lims[0][2]) & (embedding[:,0] < lims[1][0]) & (embedding[:,1] < lims[1][1]) & (embedding[:,2] < lims[1][2])
 
     filtered = embedding[outliers]
-
 
     print('Finding convex hull of the embedding')
     embedding_polygon = filtered[ConvexHull(filtered).vertices]
@@ -272,6 +271,7 @@ def ucie(embedding,):
 
     # Apply the function to the list of items using the Pool
     print(f'Assigning colours')
+
     rgb = list(pool.map(embedding_to_lab_to_rgb, t))
 
     # Close the Pool and wait for all the processes to complete

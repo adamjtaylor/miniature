@@ -87,6 +87,23 @@ def pull_pyramid(input, max_pixels = 512*512):
 
     return(zarray) 
 
+def crop_center(input):
+    store = tifffile.imread(input, aszarr=True)
+    z = zarr.open(store, mode='r')
+
+    print(z[0])
+
+    center = np.array([np.floor(z[0].shape[1]/2),np.floor(z[0].shape[2]/2)],dtype=int)
+    print(center)
+
+    xmin = center[0]-256
+    ymin = center[1]-256
+    xmax = center[0]+256
+    ymax = center[1]+256
+
+    zarray = z[0][:,xmin:xmax,ymin:ymax]
+
+    return(zarray)
 
 def remove_background(zarray, pseudocount):
     print("Finding background")
@@ -357,6 +374,12 @@ def main():
                         default=-523*523,
                         help='Maxmimum number of pixels used when selecting image pyramid level. (default 262144 (512*512))')
     
+    parser.add_argument('--crop',
+                        default=False,
+                        action='store_true',
+                        help="Make thumbnail from 512x512 region in center of image")
+    
+
     parser.add_argument('--keep_bg',
                         default=False,
                         action='store_true',
@@ -435,7 +458,10 @@ def main():
         h5color = h5file.create_group('colors')
     
     #zarray = pull_pyramid(args.input, args.level)
-    zarray = pull_pyramid(args.input, max_pixels=args.max_pixels)
+    if args.crop:
+        zarray = crop_center(args.input)
+    else:
+        zarray = pull_pyramid(args.input, max_pixels=args.max_pixels)
 
     #output.writerow([args.input, 'zarray_shape', zarray.shape])
     

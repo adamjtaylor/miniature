@@ -365,9 +365,8 @@ def main():
     parser.add_argument('-l', '--level',
                         type=int,
                         dest='level',
-                        default=-1,
-
                         help='image pyramid level to use. defaults to -1 (highest)')
+    
     parser.add_argument('--max_pixels',
                         type=float,
                         dest='max_pixels',
@@ -457,9 +456,11 @@ def main():
         h5file = h5py.File(h5_path, 'w')
         h5color = h5file.create_group('colors')
     
-    #zarray = pull_pyramid(args.input, args.level)
+    
     if args.crop:
         zarray = crop_center(args.input)
+    elif args.level:
+        zarray = pull_pyramid(args.input, args.level)
     else:
         zarray = pull_pyramid(args.input, max_pixels=args.max_pixels)
 

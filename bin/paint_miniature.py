@@ -33,16 +33,61 @@ from itertools import repeat
 from ucie_module import ucie
 import multiprocessing
         
-def pull_pyramid(input, level):
-    print("Loading image")
-    tiff = tifffile.TiffFile(input, is_ome=False)
-    tiff_levels = tiff.series[0].levels
-    highest_level_tiff = tiff_levels[level]
-    zarray = zarr.open(highest_level_tiff.aszarr())
-    print("Opened image pyramid level:", level)
-    print("Image dimensions:", zarray.shape)
-    return(zarray)
+#def pull_pyramid(input, level):
+#    print("Loading image")
+#    tiff = tifffile.TiffFile(input, is_ome=False)
+#    tiff_levels = tiff.series[0].levels
+#    highest_level_tiff = tiff_levels[level]
+#    zarray = zarr.open(highest_level_tiff.aszarr())
+#    print("Opened image pyramid level:", level)
+#    print("Image dimensions:", zarray.shape)
+#    return(zarray)
+
+def pull_pyramid(input, max_pixels = 512*512):
+
+    print(f"opening image: {input}", file=sys.stderr)
+    tiff = tifffile.TiffFile(input)
+    ndim = tiff.series[0].ndim
+    if ndim == 2:
+        raise Exception("Can't handle 2-dimensional images (yet)")
+    elif ndim == 3:
+        pass
+    else:
+        raise Exception(f"Can't handle {ndim}-dimensional images")
     
+    # Get smallest pyramid level that's at least min_size in both dimensions.
+
+    levels = tiff.series[0].levels
+    level_index = None
+    for i, level in reversed(list(enumerate(levels))):
+        print(f'{i}: {level.shape}')
+        next_level = levels[i-1]
+        n_pixels = np.prod(next_level.shape[1:])
+        if n_pixels > max_pixels:
+            break
+        else:
+            continue
+
+    selected_level_idx = i
+    selected_level = levels[i]
+    selected_level_shape = selected_level.shape[1:]
+    selected_level_npixels = np.prod(selected_level_shape)
+    if selected_level_npixels > max_pixels:
+        print(f'No level with less than {max_pixels} pixels found, using lowest level (-1)')
+
+    print(f'Selected level {selected_level_idx} with {selected_level_npixels} pixels {selected_level_shape} and {selected_level.shape[0]} channels')
+
+    zarray = zarr.open(selected_level.aszarr())
+
+    try:
+        zarray.shape
+    except:
+        print('Zarr array failed to load')
+        exit
+
+    return(zarray) 
+
+
 def remove_background(zarray, pseudocount):
     print("Finding background")
     sum_image = np.array(zarray).sum(axis = 0)
@@ -304,7 +349,13 @@ def main():
                         type=int,
                         dest='level',
                         default=-1,
+
                         help='image pyramid level to use. defaults to -1 (highest)')
+    parser.add_argument('--max_pixels',
+                        type=float,
+                        dest='max_pixels',
+                        default=-523*523,
+                        help='Maxmimum number of pixels used when selecting image pyramid level. (default 262144 (512*512))')
     
     parser.add_argument('--keep_bg',
                         default=False,
@@ -362,7 +413,7 @@ def main():
     
     args = parser.parse_args()
 
-    print('\n'.join(f'{k}={v}' for k, v in vars(args).items()))
+    #print('\n'.join(f'{k}={v}' for k, v in vars(args).items()))
 
     if args.existing:
         path = Path(args.existing)
@@ -383,7 +434,8 @@ def main():
         h5file = h5py.File(h5_path, 'w')
         h5color = h5file.create_group('colors')
     
-    zarray = pull_pyramid(args.input, args.level)
+    #zarray = pull_pyramid(args.input, args.level)
+    zarray = pull_pyramid(args.input, max_pixels=args.max_pixels)
 
     #output.writerow([args.input, 'zarray_shape', zarray.shape])
     

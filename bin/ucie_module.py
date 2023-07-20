@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 from colormath.color_conversions import convert_color
-from colormath.color_objects import sRGBColor, LabColor
+from colormath.color_objects import sRGBColor, LabColor, HSLColor
 from scipy.spatial import ConvexHull, Delaunay, distance
 from scipy.optimize import minimize
 import estimagic as em
@@ -9,40 +9,37 @@ import matplotlib.pyplot as plt
 import math
 import h5py
 from PIL import Image
+import multiprocessing
 
 
+# Perpare the target colourspace (defauly is full sRGB)
+def generate_lab_grid(
+        l_lims = [0,100], 
+        a_lims = [-128,127], 
+        b_lims = [-128,127], 
+        saturation_lims = [0,1],
+        hue_lims = [0,365]
+        ):
+    rgb_values = np.linspace(0,256,32)
+    rgb_grid =  np.array(np.meshgrid(rgb_values, rgb_values, rgb_values)).T.reshape(-1, 3)
 
+    lab_grid = np.apply_along_axis(lambda x: convert_color(sRGBColor(x[0],x[1],x[2]),LabColor).get_value_tuple(), 1, rgb_grid/256)
+    hsl_grid = np.apply_along_axis(lambda x: convert_color(sRGBColor(x[0],x[1],x[2]),HSLColor).get_value_tuple(), 1, rgb_grid/256)
 
-n = 1
-# Make RGB grid 
+    filtered_grid = lab_grid[ \
+        (lab_grid[:,0] >= l_lims[0]) & \
+        (lab_grid[:,0]  <= l_lims[1]) & \
+        (lab_grid[:,1] >= a_lims[0]) & \
+        (lab_grid[:,1] <= a_lims[1]) & \
+        (lab_grid[:,2] >= b_lims[0]) & \
+        (lab_grid[:,2] <= b_lims[1]) & \
+        (hsl_grid[:,1] >= saturation_lims[0]) & \
+        (hsl_grid[:,1] <= saturation_lims[1]) & \
+        (hsl_grid[:,0] >= hue_lims[0]) & \
+        (hsl_grid[:,0] <= hue_lims[1])   \
+        ]
+    return(filtered_grid)
 
-## Generate a one-dimensional array of coordinates ranging between 0 and 256
-coords = np.arange(0, 257, 32)
-
-## Use the meshgrid function to create all unique combinations of the coordinates
-xx, yy, zz = np.meshgrid(coords, coords, coords)
-
-## Create a boolean mask to select only the coordinates on the edges of the cube
-edges = np.logical_or.reduce((xx == 0, xx == 256, yy == 0, yy == 256, zz == 0, zz == 256))
-
-## Use the mask to select only the edge coordinates and reshape them into a three-column matrix
-rgb_polygon = np.column_stack((xx[edges], yy[edges], zz[edges]))
-
-# Convert RGB grid to CIELAB coordinates
-
-def rgb_to_lab(rgb):
-    rgb = rgb/256
-    rgb = sRGBColor(rgb[0],rgb[1],rgb[2])
-    lab = convert_color(rgb, LabColor)
-    lab = lab.get_value_tuple()
-    return lab
-
-
-lab_polygon = np.array(list(map(rgb_to_lab, rgb_polygon)))
-
-
-# Filter out dark colours
-bright = lab_polygon[:,1] > 10
 # Define transformation functions
 
 
@@ -194,6 +191,8 @@ def embedding_to_lab_to_rgb(x):
 
 
 def ucie(embedding):
+
+    lab_polygon = generate_lab_grid()
    
     lims = np.quantile(embedding,[0,1],axis=0)
 
@@ -233,9 +232,25 @@ def ucie(embedding):
 
     embedding_polygon = embedding
 
-    p, r,s,t, is_in_hull, outside, inside = transform(best, embedding_polygon, lab_polygon, lab_delaunay)
+    print('Applying the optimal transform')
+    p, r, s, t, is_in_hull, outside, inside = transform(best, embedding_polygon, lab_polygon, lab_delaunay)
    
 
-    rgb = list(map(embedding_to_lab_to_rgb, t))
+    # Get the number of available CPU cores
+    num_processes = multiprocessing.cpu_count() - 1
+    print(f'Using {num_processes} cores ')
+
+    # Create a multiprocessing Pool with the number of processes
+    pool = multiprocessing.Pool(processes=num_processes)
+
+    # Apply the function to the list of items using the Pool
+    print(f'Assigning colours')
+    rgb = list(pool.map(embedding_to_lab_to_rgb, t))
+
+    # Close the Pool and wait for all the processes to complete
+    pool.close()
+    pool.join()
+
+    print('UCIE complete')
 
     return(rgb)

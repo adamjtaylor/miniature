@@ -10,6 +10,7 @@ import math
 import h5py
 from PIL import Image
 import multiprocessing
+import pyvista as pv
 
 
 # Perpare the target colourspace (defauly is full sRGB)
@@ -104,6 +105,22 @@ def in_hull(p, hull):
 
     return hull.find_simplex(p)>=0
 
+def in_hull_pv(p, hull):
+    """
+    Test if points in `p` are within `hull`
+
+    `p` should be a `NxK` coordinates of `N` points in `K` dimensions
+    `hull should be a pyvista object where the delaunay_3d function has been applied.
+
+    Returns an array of 1 (is in hull) or 0 (is outside hull)
+    """
+
+    p_space = pv.PolyData(p)
+    is_inside = p_space.select_enclosed_points(hull,check_surface=False)['SelectedPoints']
+
+    return(is_inside)
+
+
 # Combine in a transformation function
 
 def transform(params, source, target,target_hull):
@@ -120,6 +137,8 @@ def transform(params, source, target,target_hull):
     t = np.array(translation(s,t1,t2,t3))
 
     is_in_hull = np.apply_along_axis(in_hull,1, t,hull = target_hull)
+    #is_in_hull = np.array(in_hull_pv(t,target_hull), dtype=bool)
+
     outside = np.delete(t, np.where(is_in_hull)[0],0)
     inside = t[np.where(is_in_hull)[0]]
     #print(f'{len(outside)}/{len(is_in_hull)}')
@@ -190,21 +209,28 @@ def embedding_to_lab_to_rgb(x):
         return clamped_rgb.get_value_tuple()
 
 
-def ucie(embedding):
+def ucie(embedding,):
 
+    print('Generating target colorspace')
     lab_polygon = generate_lab_grid()
    
-    lims = np.quantile(embedding,[0,1],axis=0)
+    lims = np.quantile(embedding,[0.1,0.9],axis=0)
 
     outliers = (embedding[:,0]> lims[0][0]) & (embedding[:,1]> lims[0][1]) & (embedding[:,2]> lims[0][2]) & (embedding[:,0] < lims[1][0]) & (embedding[:,1] < lims[1][1]) & (embedding[:,2] < lims[1][2])
 
     filtered = embedding[outliers]
 
+
+    print('Finding convex hull of the embedding')
     embedding_polygon = filtered[ConvexHull(filtered).vertices]
 
+    print('Estimating initial transformation')
     initial = guess_initial(embedding_polygon,lab_polygon)
 
+    print('Calculating Delaunay triangulation of the target colorspace')
     lab_delaunay = Delaunay(lab_polygon)
+    #lab_delaunay = pv.PolyData(lab_polygon).delaunay_3d(alpha = 1)
+    #lab_surface = lab_delaunay.extract_surface()
 
     params = [initial[1], initial[2][0], initial[2][1], initial[2][2],initial[0][0], initial[0][1], initial[0][2]]
 
@@ -213,6 +239,7 @@ def ucie(embedding):
     #ub[1] = ub[2] = ub[3] = np.round(360*(math.pi/180),5)
     ub[1] = ub[2] = ub[3] = 6.63225
 
+    print('Running optimisation')
     res = em.minimize(
         criterion=objective,
         params=params,
@@ -250,6 +277,35 @@ def ucie(embedding):
     # Close the Pool and wait for all the processes to complete
     pool.close()
     pool.join()
+
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter3D(
+        embedding[:,0], 
+        embedding[:,1], 
+        embedding[:,2], 
+        s = 1,
+        edgecolors = 'none'
+        )
+    ax.set_xlabel('Dim 1')
+    ax.set_ylabel('Dim 2')
+    ax.set_zlabel('Dim 3')
+    plt.savefig('initial_embedding.png')
+
+    fig = plt.figure()
+    ax = fig.add_subplot(projection='3d')
+    ax.scatter3D(
+        t[:,0], 
+        t[:,1], 
+        t[:,2], 
+        c = rgb,
+        s = 1,
+        edgecolors = 'none'
+        )
+    ax.set_xlabel('Dim 1')
+    ax.set_ylabel('Dim 2')
+    ax.set_zlabel('Dim 3')
+    plt.savefig('optimized_embedding.png')
 
     print('UCIE complete')
 

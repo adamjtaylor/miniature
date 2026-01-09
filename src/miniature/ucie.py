@@ -7,7 +7,7 @@ to maximize color space utilization while staying within valid sRGB gamut.
 
 import numpy as np
 import colour
-import estimagic as em
+import optimagic as om
 import matplotlib.pyplot as plt
 from scipy.spatial import ConvexHull, Delaunay
 from scipy.spatial.distance import cdist
@@ -201,7 +201,7 @@ def ucie(embedding: np.ndarray, save_plots: bool = False) -> np.ndarray:
 
     print('Running optimization')
     try:
-        res = em.minimize(
+        res = om.minimize(
             criterion=objective,
             params=params,
             criterion_kwargs={'source': embedding_polygon, 'target_hull': lab_delaunay},

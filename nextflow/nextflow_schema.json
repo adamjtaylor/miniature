@@ -1,0 +1,59 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema",
+    "$id": "https://raw.githubusercontent.com/adamjtaylor/miniature/v2-develop/nextflow_schema.json",
+    "title": "Miniature Pipeline Parameters",
+    "description": "Create visual thumbnails from high-dimensional imaging data using dimensionality reduction",
+    "type": "object",
+    "definitions": {
+        "input_output_options": {
+            "title": "Input/output options",
+            "type": "object",
+            "fa_icon": "fas fa-terminal",
+            "description": "Define where the pipeline should find input data and save output data.",
+            "required": [
+                "samplesheet",
+                "outdir"
+            ],
+            "properties": {
+                "samplesheet": {
+                    "type": "string",
+                    "format": "file-path",
+                    "description": "Path to CSV samplesheet with columns: filename, dimred, metric, log_arg, components, colormap, scaler",
+                    "fa_icon": "fas fa-file-csv"
+                },
+                "outdir": {
+                    "type": "string",
+                    "format": "directory-path",
+                    "description": "Output directory for results",
+                    "fa_icon": "fas fa-folder-open",
+                    "default": "outputs"
+                }
+            }
+        },
+        "processing_options": {
+            "title": "Processing options",
+            "type": "object",
+            "description": "Options for image processing and dimensionality reduction",
+            "properties": {
+                "max_size": {
+                    "type": "integer",
+                    "default": 1024,
+                    "description": "Maximum image dimension for processing"
+                },
+                "n": {
+                    "type": "integer",
+                    "default": 1024,
+                    "description": "Number of pixels to sample for metrics calculation"
+                }
+            }
+        }
+    },
+    "allOf": [
+        {
+            "$ref": "#/definitions/input_output_options"
+        },
+        {
+            "$ref": "#/definitions/processing_options"
+        }
+    ]
+}

@@ -1,0 +1,76 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "miniature"
+version = "2.0.0"
+description = "Visual thumbnails from high-dimensional imaging via dimensionality reduction"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.9"
+authors = [{ name = "Adam Taylor" }]
+keywords = ["imaging", "dimensionality-reduction", "visualization", "multiplex", "spatial-omics"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Image Processing",
+    "Topic :: Scientific/Engineering :: Visualization",
+]
+dependencies = [
+    "numpy>=1.21,<2",
+    "scipy>=1.7",
+    "scikit-learn>=1.0",
+    "scikit-image>=0.19",
+    "umap-learn>=0.5",
+    "colour-science>=0.4",
+    "tifffile>=2022.5",
+    "zarr>=2.11",
+    "h5py>=3.6",
+    "Pillow>=9.0",
+    "matplotlib>=3.5",
+    "tqdm>=4.64",
+]
+
+[project.optional-dependencies]
+ucie = ["optimagic>=0.5", "pyvista>=0.37"]
+metrics = ["mantel>=2.2"]
+all = ["miniature[ucie,metrics]"]
+dev = ["pytest", "pytest-cov", "ruff"]
+
+[project.scripts]
+miniature = "miniature.cli:main"
+miniature-metrics = "miniature.cli:metrics_main"
+
+[project.urls]
+Homepage = "https://github.com/adamjtaylor/miniature"
+Documentation = "https://github.com/adamjtaylor/miniature#readme"
+Repository = "https://github.com/adamjtaylor/miniature"
+Issues = "https://github.com/adamjtaylor/miniature/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/miniature"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/src",
+    "/README.md",
+    "/LICENSE",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

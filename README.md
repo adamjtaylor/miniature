@@ -17,33 +17,32 @@ Miniature applies dimensionality reduction (UMAP, t-SNE, or PCA) to multiplexed 
 
 ## Installation
 
-### Docker (Recommended)
+### From PyPI (coming soon)
 
 ```bash
-docker pull adamjtaylor/miniature:latest
+pip install miniature
 ```
 
-### Manual Installation
+### From Source
 
 ```bash
-# Clone the repository
 git clone https://github.com/adamjtaylor/miniature.git
 cd miniature
-
-# Install dependencies
-pip install -r docker/requirements.txt
+pip install -e .
 ```
 
-### Dependencies
+### Optional Dependencies
 
-- Python 3.9+
-- numpy, scipy, scikit-learn, scikit-image
-- umap-learn
-- colour-science (for vectorized color conversions)
-- tifffile, zarr, h5py
-- matplotlib, Pillow
-- estimagic (for UCIE optimization)
-- tqdm (for progress bars)
+```bash
+# For UCIE colormap (optimization-based)
+pip install -e ".[ucie]"
+
+# For metrics calculation
+pip install -e ".[metrics]"
+
+# All optional dependencies
+pip install -e ".[all]"
+```
 
 ## Usage
 
@@ -51,25 +50,47 @@ pip install -r docker/requirements.txt
 
 ```bash
 # Basic usage with UMAP and LAB colormap
-python bin/paint_miniature.py input.ome.tiff output.png
+miniature input.ome.tiff output.png
 
 # Use t-SNE with 2 components and a specific colormap
-python bin/paint_miniature.py input.ome.tiff output.png \
+miniature input.ome.tiff output.png \
     --dimred tsne \
     --n_components 2 \
     --colormap BREMM
 
 # Generate all colormaps and save intermediate data
-python bin/paint_miniature.py input.ome.tiff output.png \
+miniature input.ome.tiff output.png \
     --colormap ALL \
     --save_data \
     --plot_embedding
 
 # Keep background and apply log transform
-python bin/paint_miniature.py input.ome.tiff output.png \
+miniature input.ome.tiff output.png \
     --keep_bg \
     --log \
     --pseudocount 1
+```
+
+### Python API
+
+```python
+import miniature
+
+# Use core functions directly
+from miniature import (
+    pull_pyramid,
+    remove_background,
+    run_umap,
+    assign_colours_lab,
+    make_rgb_image,
+)
+
+# Load and process image
+zarray = pull_pyramid("input.ome.tiff", max_pixels=512*512)
+tissue_array, mask = remove_background(zarray, pseudocount=1.0)
+embedding = run_umap(tissue_array, n=3, metric="euclidean")
+rgb = assign_colours_lab(embedding)
+image = make_rgb_image(rgb, mask)
 ```
 
 ### Command Line Options
@@ -101,7 +122,7 @@ filename,dimred,metric,log_arg,components,colormap,scaler
 Run the pipeline:
 
 ```bash
-nextflow run main.nf \
+nextflow run nextflow/main.nf \
     --samplesheet samplesheet.csv \
     --outdir results \
     -profile docker
@@ -112,7 +133,7 @@ nextflow run main.nf \
 After generating miniatures with `--save_data`:
 
 ```bash
-python bin/miniature_metrics.py output.h5 --metric euclidean --n 256
+miniature-metrics output.h5 --metric euclidean --n 256
 ```
 
 This calculates:

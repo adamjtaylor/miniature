@@ -69,6 +69,35 @@ miniature input.ome.tiff output.png \
     --keep_bg \
     --log \
     --pseudocount 1
+
+# Use custom UMAP parameters for tighter clusters
+miniature input.ome.tiff output.png \
+    --umap_n_neighbors 30 \
+    --umap_min_dist 0.0 \
+    --umap_random_state 42
+
+# Use JSON file for advanced UMAP parameters
+miniature input.ome.tiff output.png \
+    --umap_params umap_config.json
+```
+
+#### Advanced UMAP Configuration
+
+Create a JSON file (`umap_config.json`) to specify additional UMAP parameters:
+
+```json
+{
+    "n_neighbors": 30,
+    "min_dist": 0.0,
+    "n_epochs": 500,
+    "learning_rate": 1.0,
+    "init": "spectral",
+    "random_state": 42,
+    "metric_kwds": {"p": 2}
+}
+```
+
+This allows full control over UMAP behavior without cluttering the command line. Any UMAP parameter can be specified in the JSON file.
 ```
 
 ### Python API
@@ -101,6 +130,10 @@ image = make_rgb_image(rgb, mask)
 | `--n_components` | Number of embedding dimensions (2 or 3) | 3 |
 | `--colormap` | Color mapping (ALL, LAB, RGB, UCIE, BREMM, etc.) | ALL |
 | `--metric` | Distance metric for UMAP/t-SNE | euclidean |
+| `--umap_n_neighbors` | UMAP n_neighbors: local neighborhood size | 15 |
+| `--umap_min_dist` | UMAP min_dist: minimum distance in embedding | 0.1 |
+| `--umap_random_state` | UMAP random_state: seed for reproducibility | None |
+| `--umap_params` | Path to JSON file with additional UMAP parameters | None |
 | `--max_pixels` | Max pixels for pyramid level selection | 262144 |
 | `--keep_bg` | Don't remove background | False |
 | `--log` | Apply log10 transform | False |

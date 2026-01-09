@@ -7,6 +7,7 @@ and maps the low-dimensional embeddings to perceptually meaningful colors.
 """
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -153,10 +154,24 @@ def run_pca(tissue_array: np.ndarray, n: int) -> np.ndarray:
     return reducer.fit_transform(tissue_array)
 
 
-def run_umap(tissue_array: np.ndarray, n: int, metric: str) -> np.ndarray:
-    """Run UMAP dimensionality reduction."""
+def run_umap(tissue_array: np.ndarray, n: int, metric: str, **umap_kwargs) -> np.ndarray:
+    """
+    Run UMAP dimensionality reduction.
+
+    Args:
+        tissue_array: Input data array (n_samples, n_features)
+        n: Number of components for dimensionality reduction
+        metric: Distance metric to use
+        **umap_kwargs: Additional keyword arguments to pass to UMAP
+
+    Returns:
+        Embedding array (n_samples, n_components)
+    """
     print("Running UMAP")
-    reducer = umap.UMAP(n_components=n, metric=metric, verbose=True)
+    # Merge user parameters with defaults
+    umap_params = {'n_components': n, 'metric': metric, 'verbose': True}
+    umap_params.update(umap_kwargs)
+    reducer = umap.UMAP(**umap_params)
     return reducer.fit_transform(tissue_array)
 
 
@@ -357,6 +372,16 @@ def main():
                                  'mahalanobis', 'minkowski'],
                         help='Distance metric for UMAP/t-SNE')
 
+    # UMAP-specific parameters
+    parser.add_argument('--umap_n_neighbors', type=int, default=15,
+                        help='UMAP n_neighbors: size of local neighborhood (larger = more global structure)')
+    parser.add_argument('--umap_min_dist', type=float, default=0.1,
+                        help='UMAP min_dist: minimum distance between points in embedding (smaller = tighter clusters)')
+    parser.add_argument('--umap_random_state', type=int, default=None,
+                        help='UMAP random_state: random seed for reproducibility')
+    parser.add_argument('--umap_params', type=str, default=None,
+                        help='Path to JSON file with additional UMAP parameters')
+
     parser.add_argument('--log', action='store_true',
                         help='Log10 transform the data')
     parser.add_argument('--pseudocount', type=float, default=1.0,
@@ -439,7 +464,26 @@ def main():
     if args.dimred == 'tsne':
         embedding = run_tsne(tissue_array, args.n_components, args.metric)
     elif args.dimred == 'umap':
-        embedding = run_umap(tissue_array, args.n_components, args.metric)
+        # Build UMAP parameters
+        umap_kwargs = {}
+
+        # Add CLI parameters
+        if args.umap_n_neighbors != 15:  # Only add if non-default
+            umap_kwargs['n_neighbors'] = args.umap_n_neighbors
+        if args.umap_min_dist != 0.1:  # Only add if non-default
+            umap_kwargs['min_dist'] = args.umap_min_dist
+        if args.umap_random_state is not None:
+            umap_kwargs['random_state'] = args.umap_random_state
+
+        # Load and merge JSON parameters if provided
+        if args.umap_params:
+            print(f"Loading UMAP parameters from {args.umap_params}")
+            with open(args.umap_params, 'r') as f:
+                json_params = json.load(f)
+            umap_kwargs.update(json_params)
+            print(f"Loaded UMAP parameters: {json_params}")
+
+        embedding = run_umap(tissue_array, args.n_components, args.metric, **umap_kwargs)
     else:  # pca
         embedding = run_pca(tissue_array, args.n_components)
 

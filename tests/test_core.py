@@ -81,3 +81,47 @@ def test_run_pca():
     embedding = run_pca(data, n=3)
 
     assert embedding.shape == (100, 3)
+
+
+def test_run_umap_default():
+    """Test UMAP reduction with default parameters."""
+    from miniature import run_umap
+
+    # Create fake pixel data
+    data = np.random.randn(100, 10)
+
+    embedding = run_umap(data, n=3, metric='euclidean')
+
+    assert embedding.shape == (100, 3)
+
+
+def test_run_umap_with_kwargs():
+    """Test UMAP reduction with custom parameters."""
+    from miniature import run_umap
+
+    # Create fake pixel data
+    data = np.random.randn(100, 10)
+
+    # Test with custom parameters
+    embedding = run_umap(
+        data,
+        n=2,
+        metric='euclidean',
+        n_neighbors=10,
+        min_dist=0.0,
+        random_state=42
+    )
+
+    assert embedding.shape == (100, 2)
+
+    # Test reproducibility with random_state
+    embedding2 = run_umap(
+        data,
+        n=2,
+        metric='euclidean',
+        n_neighbors=10,
+        min_dist=0.0,
+        random_state=42
+    )
+
+    np.testing.assert_array_almost_equal(embedding, embedding2, decimal=5)

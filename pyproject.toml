@@ -43,7 +43,7 @@ dependencies = [
 ucie = ["optimagic>=0.5", "pyvista>=0.37"]
 metrics = ["mantel>=2.2"]
 all = ["miniature[ucie,metrics]"]
-dev = ["pytest", "pytest-cov", "ruff"]
+dev = ["miniature[all]", "pytest", "pytest-cov", "ruff"]
 
 [project.scripts]
 miniature = "miniature.cli:main"

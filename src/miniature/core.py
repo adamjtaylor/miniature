@@ -223,6 +223,9 @@ def assign_colours_rgb(embedding: np.ndarray) -> np.ndarray:
 
     rgb = np.hstack([dim3, dim1, dim2])
 
+    # Clamp to valid RGB range
+    rgb = np.clip(rgb, 0, 1)
+
     print(f"RGB range: [{rgb.min():.3f}, {rgb.max():.3f}]")
     print("RGB colors assigned")
     return rgb

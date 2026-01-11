@@ -33,10 +33,15 @@ jobs:
       run: |
         pytest tests/ -v
 
-    - name: Test on mIF example data
+    - name: 3D on mIF example data
       run: |
-        miniature data/exemplar-001_small.tif output_mif.png --colormap UCIE
-        test -f output_mif.png || (echo "mIF output file not created" && exit 1)
+        miniature data/exemplar-001_small.tif output_mif_3D.png --colormap UCIE
+        test -f output_mif_3D.png || (echo "mIF output file not created" && exit 1)
+
+    - name: 2D on mIF example data
+      run: |
+        miniature data/exemplar-001_small.tif output_mif_2d.png --n_components 2 --colormap TEULING2
+        test -f output_mif_2D.png || (echo "mIF output file not created" && exit 1)
 
     - name: Upload generated images as artifacts
       uses: actions/upload-artifact@v4

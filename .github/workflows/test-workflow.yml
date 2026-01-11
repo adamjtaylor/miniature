@@ -44,5 +44,5 @@ jobs:
       with:
         name: miniature-outputs-py${{ matrix.python-version }}
         path: |
-          output_mif.png
+          output_mif_*.png
         retention-days: 7

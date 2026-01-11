@@ -35,7 +35,7 @@ jobs:
 
     - name: Test on mIF example data
       run: |
-        miniature data/exemplar-001_small.tif output_mif.png
+        miniature data/exemplar-001_small.tif output_mif.png --colormap UCIE
         test -f output_mif.png || (echo "mIF output file not created" && exit 1)
 
     - name: Upload generated images as artifacts

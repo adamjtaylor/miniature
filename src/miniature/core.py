@@ -87,7 +87,14 @@ def pull_pyramid(input_path: str, max_pixels: int = 512 * 512) -> zarr.Array:
     print(f'Selected level {selected_level_idx} with {selected_level_npixels} pixels '
           f'{selected_level_shape} and {selected_level.shape[0]} channels')
 
-    zarray = zarr.open(selected_level.aszarr())
+    store = zarr.open(selected_level.aszarr())
+
+    # Handle case where zarr.open returns a Group instead of an Array
+    if isinstance(store, zarr.Group):
+        # Get the first array from the group
+        zarray = store[list(store.keys())[0]]
+    else:
+        zarray = store
 
     if not hasattr(zarray, 'shape'):
         print('Zarr array failed to load', file=sys.stderr)

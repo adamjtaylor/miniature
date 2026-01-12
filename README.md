@@ -174,7 +174,7 @@ Version 2.0 includes significant performance improvements:
 
 If you use Miniature in your research, please cite:
 
-> Taylor AJ, et al. (2024). Miniature: Visual thumbnails for high-dimensional imaging.
+> Taylor AJ, et al. (2024). Miniature: Unsupervised glimpses into multiplexed tissue imaging datasets as thumbnails for data portals.
 > bioRxiv. doi: 10.1101/2024.10.01.615855
 
 ## License

@@ -40,7 +40,7 @@ jobs:
 
     - name: 2D on mIF example data
       run: |
-        miniature data/exemplar-001_small.tif output_mif_2d.png --n_components 2 --colormap TEULING2
+        miniature data/exemplar-001_small.tif output_mif_2D.png --n_components 2 --colormap TEULING2
         test -f output_mif_2D.png || (echo "mIF output file not created" && exit 1)
 
     - name: Upload generated images as artifacts

@@ -35,12 +35,12 @@ jobs:
 
     - name: 3D on mIF example data
       run: |
-        miniature data/exemplar-001_small.tif output_mif_3D.png --colormap UCIE
+        miniature data/WD-76845-003_ROI01.ome.tif output_mif_3D.png --colormap UCIE
         test -f output_mif_3D.png || (echo "mIF output file not created" && exit 1)
 
     - name: 2D on mIF example data
       run: |
-        miniature data/exemplar-001_small.tif output_mif_2D.png --n_components 2 --colormap TEULING2
+        miniature data/WD-76845-003_ROI01.ome.tif output_mif_2D.png --n_components 2 --colormap TEULING2
         test -f output_mif_2D.png || (echo "mIF output file not created" && exit 1)
 
     - name: Upload generated images as artifacts

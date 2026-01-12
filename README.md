@@ -108,6 +108,8 @@ image = make_rgb_image(rgb, mask)
 | `--scaler` | Scaling method (MinMaxScaler, StandardScaler, RobustScaler) | None |
 | `--save_data` | Save intermediate data to HDF5 | False |
 | `--plot_embedding` | Save embedding visualization | False |
+| `--optimize` | Apply UCIE-style rotation optimization | True |
+| `--no-optimize` | Disable optimization, use direct scaling | - |
 
 ### Nextflow Pipeline
 
@@ -144,9 +146,10 @@ This calculates:
 
 ### 3D Embeddings
 
-- **LAB**: Maps embedding to CIE LAB color space
-- **RGB**: Direct mapping to RGB channels
-- **UCIE**: Uniform Color in Embedding - optimizes the transformation to maximize color space utilization while staying within sRGB gamut
+- **LAB**: Maps embedding to CIE LAB color space (with rotation optimization by default)
+- **RGB**: Direct mapping to RGB channels (with rotation optimization by default)
+
+By default, both LAB and RGB use rotation optimization to maximize color space utilization while staying within sRGB gamut. Use `--no-optimize` for direct scaling without optimization.
 
 ### 2D Embeddings
 
@@ -169,6 +172,9 @@ Version 2.0 includes significant performance improvements:
 - Vectorized color conversions using colour-science library
 - Removed per-pixel multiprocessing overhead
 - Optimized LAB to RGB conversion
+- **Fast rotation optimization**: Uses ConvexHull half-space inequalities instead of Delaunay triangulation, achieving ~5-20x speedup
+  - 100k point 3D optimization: ~6 seconds
+  - 100k point 2D optimization: ~0.1 seconds
 
 ## Citation
 

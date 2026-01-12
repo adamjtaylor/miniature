@@ -8,7 +8,7 @@ version = "2.0.0"
 description = "Visual thumbnails from high-dimensional imaging via dimensionality reduction"
 readme = "README.md"
 license = "MIT"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 authors = [{ name = "Adam Taylor" }]
 keywords = ["imaging", "dimensionality-reduction", "visualization", "multiplex", "spatial-omics"]
 classifiers = [
@@ -17,33 +17,33 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Image Processing",
     "Topic :: Scientific/Engineering :: Visualization",
 ]
 dependencies = [
-    "numpy>=1.21,<2",
-    "scipy>=1.7",
-    "scikit-learn>=1.0",
-    "scikit-image>=0.19",
+    "numpy>=1.24,<2",
+    "scipy>=1.10",
+    "scikit-learn>=1.2",
+    "scikit-image>=0.20",
     "umap-learn>=0.5",
     "colour-science>=0.4",
-    "tifffile>=2022.5",
+    "tifffile>=2023.7.4",
+    "imagecodecs>=2024.1.1",
     "zarr>=2.11",
-    "h5py>=3.6",
-    "Pillow>=9.0",
-    "matplotlib>=3.5",
-    "tqdm>=4.64",
+    "h5py>=3.8",
+    "Pillow>=9.5",
+    "matplotlib>=3.7",
+    "tqdm>=4.65",
 ]
 
 [project.optional-dependencies]
 ucie = ["optimagic>=0.5", "pyvista>=0.37"]
 metrics = ["mantel>=2.2"]
 all = ["miniature[ucie,metrics]"]
-dev = ["pytest", "pytest-cov", "ruff"]
+# Reference the project's 'all' extra to ensure 'dev' installs everything
+dev = ["miniature[all]", "pytest", "pytest-cov", "ruff"]
 
 [project.scripts]
 miniature = "miniature.cli:main"
@@ -67,7 +67,7 @@ include = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py39"
+target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]

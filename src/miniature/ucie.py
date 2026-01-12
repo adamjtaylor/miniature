@@ -207,8 +207,7 @@ def ucie(embedding: np.ndarray, save_plots: bool = False) -> np.ndarray:
             criterion_kwargs={'source': embedding_polygon, 'target_hull': lab_delaunay},
             algorithm="scipy_neldermead",
             algo_options={'stopping.max_iterations': 500},
-            soft_lower_bounds=lb,
-            soft_upper_bounds=ub,
+            bounds=em.Bounds(soft_lower=lb, soft_upper=ub),
             multistart=True,
             multistart_options={"n_samples": 10, "n_cores": 4}
         )

@@ -19,6 +19,7 @@ def test_core_functions_exist():
         run_pca,
         run_umap,
         assign_colours_lab,
+        assign_colours_oklab,
         assign_colours_rgb,
         make_rgb_image,
     )
@@ -46,6 +47,20 @@ def test_assign_colours_rgb():
     embedding = np.random.randn(100, 3)
 
     rgb = assign_colours_rgb(embedding)
+
+    assert rgb.shape == (100, 3)
+    assert rgb.min() >= 0
+    assert rgb.max() <= 1
+
+
+def test_assign_colours_oklab():
+    """Test OKLab color assignment."""
+    from miniature import assign_colours_oklab
+
+    # Create fake 3D embedding
+    embedding = np.random.randn(100, 3)
+
+    rgb = assign_colours_oklab(embedding)
 
     assert rgb.shape == (100, 3)
     assert rgb.min() >= 0

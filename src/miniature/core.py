@@ -8,6 +8,7 @@ and maps the low-dimensional embeddings to perceptually meaningful colors.
 
 import argparse
 import sys
+import warnings
 from pathlib import Path
 
 import colour
@@ -26,7 +27,7 @@ from sklearn.manifold import TSNE
 from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
 from tqdm import tqdm
 
-from .ucie import ucie
+from .ucie import optimize_embedding, optimize_embedding_2d, ucie
 
 __version__ = "2.0.0"
 
@@ -88,7 +89,14 @@ def pull_pyramid(input_path: str, max_pixels: int = 512 * 512) -> zarr.Array:
     print(f'Selected level {selected_level_idx} with {selected_level_npixels} pixels '
           f'{selected_level_shape} and {selected_level.shape[0]} channels')
 
-    zarray = zarr.open(selected_level.aszarr())
+    store = zarr.open(selected_level.aszarr())
+
+    # Handle case where zarr.open returns a Group instead of an Array
+    if isinstance(store, zarr.Group):
+        # Get the first array from the group
+        zarray = store[list(store.keys())[0]]
+    else:
+        zarray = store
 
     if not hasattr(zarray, 'shape'):
         print('Zarr array failed to load', file=sys.stderr)
@@ -268,6 +276,45 @@ def assign_colours_lab(embedding: np.ndarray) -> np.ndarray:
     return rgb
 
 
+def assign_colours_oklab(embedding: np.ndarray) -> np.ndarray:
+    """
+    Map 3D embedding to OKLab color space (vectorized).
+
+    OKLab provides better perceptual uniformity than CIELAB, with
+    Euclidean distance directly corresponding to perceived color difference.
+
+    Args:
+        embedding: (n_pixels, 3) array of embedding coordinates
+
+    Returns:
+        (n_pixels, 3) array of RGB values in [0, 1]
+    """
+    print("Assigning OKLab colours to embedding (vectorized)")
+
+    # Scale dimensions to OKLab ranges
+    # L range: [0, 1]
+    # a, b range: approximately [-0.4, 0.4] for sRGB gamut
+    scaler_ab = MinMaxScaler(feature_range=(-0.4, 0.4))
+    scaler_l = MinMaxScaler(feature_range=(0, 1))
+
+    dim1 = scaler_ab.fit_transform(embedding[:, 0:1])
+    dim2 = scaler_ab.fit_transform(embedding[:, 1:2])
+    dim3 = scaler_l.fit_transform(embedding[:, 2:3])
+
+    # OKLab array: [L, a, b] - note: L is third dimension in embedding
+    oklab = np.hstack([dim3, dim1, dim2])
+
+    # Vectorized OKLab to RGB conversion using colour-science
+    xyz = colour.Oklab_to_XYZ(oklab)
+    rgb = colour.XYZ_to_sRGB(xyz)
+
+    # Clamp to valid RGB range
+    rgb = np.clip(rgb, 0, 1)
+
+    print("OKLab colors assigned")
+    return rgb
+
+
 def assign_colours_rgb(embedding: np.ndarray) -> np.ndarray:
     """
     Map 3D embedding directly to RGB (vectorized).
@@ -288,18 +335,26 @@ def assign_colours_rgb(embedding: np.ndarray) -> np.ndarray:
 
     rgb = np.hstack([dim3, dim1, dim2])
 
+    # Clamp to valid RGB range
+    rgb = np.clip(rgb, 0, 1)
+
     print(f"RGB range: [{rgb.min():.3f}, {rgb.max():.3f}]")
     print("RGB colors assigned")
     return rgb
 
 
-def assign_colours_2d(embedding: np.ndarray, colormap_path: Path) -> np.ndarray:
+def assign_colours_2d(
+        embedding: np.ndarray,
+        colormap_path: Path,
+        pre_scaled: bool = False
+) -> np.ndarray:
     """
     Map 2D embedding to colors using a colormap image.
 
     Args:
         embedding: (n_pixels, 2) array of embedding coordinates
         colormap_path: Path to colormap PNG image
+        pre_scaled: If True, embedding is already in [0,1] range (skip scaling)
 
     Returns:
         (n_pixels, 3) array of RGB values in [0, 1]
@@ -309,11 +364,14 @@ def assign_colours_2d(embedding: np.ndarray, colormap_path: Path) -> np.ndarray:
     width, height = colormap_im.size
 
     print("Assigning 2D colours to embedding")
-    scaler = MinMaxScaler(feature_range=(0, 1))
-    scaled = np.hstack([
-        scaler.fit_transform(embedding[:, 0:1]),
-        scaler.fit_transform(embedding[:, 1:2])
-    ])
+    if pre_scaled:
+        scaled = embedding
+    else:
+        scaler = MinMaxScaler(feature_range=(0, 1))
+        scaled = np.hstack([
+            scaler.fit_transform(embedding[:, 0:1]),
+            scaler.fit_transform(embedding[:, 1:2])
+        ])
 
     # Map to colormap pixel coordinates
     x_coords = (scaled[:, 0] * (width - 1)).astype(int)
@@ -432,8 +490,14 @@ def main():
 
     parser.add_argument('--colormap', type=str, dest='colormap', default='ALL',
                         choices=['ALL', 'BREMM', 'SCHUMANN', 'STEIGER', 'TEULING2',
-                                 'ZIEGLER', 'CUBEDIAGONAL', 'LAB', 'RGB', 'UCIE'],
+                                 'ZIEGLER', 'CUBEDIAGONAL', 'LAB', 'OKLAB', 'RGB', 'UCIE'],
                         help='Colormap for visualization')
+
+    parser.add_argument('--optimize', action='store_true', default=True,
+                        dest='optimize',
+                        help='Apply UCIE-style rotation optimization (default: True)')
+    parser.add_argument('--no-optimize', action='store_false', dest='optimize',
+                        help='Disable rotation optimization, use direct scaling')
 
     parser.add_argument('--save_data', action='store_true',
                         help='Save intermediate data to HDF5')
@@ -519,7 +583,7 @@ def main():
     # Select colormaps based on dimensions
     if args.colormap == "ALL":
         if args.n_components == 3:
-            selected_colormaps = ['LAB', 'RGB', 'UCIE']
+            selected_colormaps = ['LAB', 'OKLAB', 'RGB']
         else:
             selected_colormaps = list(COLORMAPS_2D.keys())
     else:
@@ -531,11 +595,28 @@ def main():
 
         if args.n_components == 3:
             if cmap == 'LAB':
-                rgb = assign_colours_lab(embedding)
-            elif cmap == 'UCIE':
-                rgb = ucie(embedding)
+                if args.optimize:
+                    rgb = optimize_embedding(embedding, target='LAB')
+                else:
+                    rgb = assign_colours_lab(embedding)
+            elif cmap == 'OKLAB':
+                if args.optimize:
+                    rgb = optimize_embedding(embedding, target='OKLAB')
+                else:
+                    rgb = assign_colours_oklab(embedding)
             elif cmap == 'RGB':
-                rgb = assign_colours_rgb(embedding)
+                if args.optimize:
+                    rgb = optimize_embedding(embedding, target='RGB')
+                else:
+                    rgb = assign_colours_rgb(embedding)
+            elif cmap == 'UCIE':
+                # Deprecation warning
+                warnings.warn(
+                    "UCIE colormap is deprecated. Use --colormap LAB --optimize instead.",
+                    DeprecationWarning,
+                    stacklevel=2
+                )
+                rgb = optimize_embedding(embedding, target='LAB')
             else:
                 print(f'Colormap {cmap} not valid for 3D embedding, skipping')
                 continue
@@ -544,7 +625,11 @@ def main():
                 print(f'Colormap {cmap} not valid for 2D embedding, skipping')
                 continue
             colormap_path = COLORMAP_DIR / COLORMAPS_2D[cmap]
-            rgb = assign_colours_2d(embedding, colormap_path)
+            if args.optimize:
+                optimized = optimize_embedding_2d(embedding)
+                rgb = assign_colours_2d(optimized, colormap_path, pre_scaled=True)
+            else:
+                rgb = assign_colours_2d(embedding, colormap_path)
 
         rgb_image = make_rgb_image(rgb, mask)
 

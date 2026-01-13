@@ -4,6 +4,36 @@
 
 Miniature applies dimensionality reduction (UMAP, t-SNE, or PCA) to multiplexed tissue imaging data and maps the low-dimensional embeddings to perceptually meaningful color spaces, creating intuitive visual representations of complex spectral data.
 
+## Examples
+
+### Input: Multiplexed Tissue Imaging (25 channels)
+
+![Channel Mosaic](docs/images/channel_mosaic.png)
+
+### UMAP Embeddings
+
+| 3D Embedding | 2D Embedding |
+|--------------|--------------|
+| ![3D Embedding](docs/images/embedding_3d.png) | ![2D Embedding](docs/images/embedding_2d.png) |
+
+### 3D Colormap Outputs (UMAP → 3 components)
+
+| LAB | RGB | OKLAB |
+|-----|-----|-------|
+| ![LAB](docs/images/example_LAB.png) | ![RGB](docs/images/example_RGB.png) | ![OKLAB](docs/images/example_OKLAB.png) |
+
+### 2D Colormap Outputs (UMAP → 2 components)
+
+| BREMM | SCHUMANN | STEIGER |
+|-------|----------|---------|
+| ![BREMM](docs/images/example_BREMM.png) | ![SCHUMANN](docs/images/example_SCHUMANN.png) | ![STEIGER](docs/images/example_STEIGER.png) |
+
+| TEULING2 | ZIEGLER | CUBEDIAGONAL |
+|----------|---------|--------------|
+| ![TEULING2](docs/images/example_TEULING2.png) | ![ZIEGLER](docs/images/example_ZIEGLER.png) | ![CUBEDIAGONAL](docs/images/example_CUBEDIAGONAL.png) |
+
+*Generated from multiplexed immunofluorescence tissue imaging data (WD-76845-003_ROI01).*
+
 ## Features
 
 - **Multiple dimensionality reduction methods**: UMAP, t-SNE, PCA
@@ -108,6 +138,8 @@ image = make_rgb_image(rgb, mask)
 | `--scaler` | Scaling method (MinMaxScaler, StandardScaler, RobustScaler) | None |
 | `--save_data` | Save intermediate data to HDF5 | False |
 | `--plot_embedding` | Save embedding visualization | False |
+| `--optimize` | Apply UCIE-style rotation optimization | True |
+| `--no-optimize` | Disable optimization, use direct scaling | - |
 
 ### Nextflow Pipeline
 
@@ -144,9 +176,10 @@ This calculates:
 
 ### 3D Embeddings
 
-- **LAB**: Maps embedding to CIE LAB color space
-- **RGB**: Direct mapping to RGB channels
-- **UCIE**: Uniform Color in Embedding - optimizes the transformation to maximize color space utilization while staying within sRGB gamut
+- **LAB**: Maps embedding to CIE LAB color space (with rotation optimization by default)
+- **RGB**: Direct mapping to RGB channels (with rotation optimization by default)
+
+By default, both LAB and RGB use rotation optimization to maximize color space utilization while staying within sRGB gamut. Use `--no-optimize` for direct scaling without optimization.
 
 ### 2D Embeddings
 
@@ -169,12 +202,15 @@ Version 2.0 includes significant performance improvements:
 - Vectorized color conversions using colour-science library
 - Removed per-pixel multiprocessing overhead
 - Optimized LAB to RGB conversion
+- **Fast rotation optimization**: Uses ConvexHull half-space inequalities instead of Delaunay triangulation, achieving ~5-20x speedup
+  - 100k point 3D optimization: ~6 seconds
+  - 100k point 2D optimization: ~0.1 seconds
 
 ## Citation
 
 If you use Miniature in your research, please cite:
 
-> Taylor AJ, et al. (2024). Miniature: Visual thumbnails for high-dimensional imaging.
+> Taylor AJ, et al. (2024). Miniature: Unsupervised glimpses into multiplexed tissue imaging datasets as thumbnails for data portals.
 > bioRxiv. doi: 10.1101/2024.10.01.615855
 
 ## License

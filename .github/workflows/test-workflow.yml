@@ -10,18 +10,14 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.11']
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.11'
         cache: 'pip'
 
     - name: Install dependencies
@@ -33,16 +29,147 @@ jobs:
       run: |
         pytest tests/ -v -k "not slow"
 
-    - name: 3D LAB with optimization on mIF example data
-      run: |
-        miniature data/WD-76845-003_ROI01.ome.tif output_mif_3D_LAB.png --colormap LAB
-        test -f output_mif_3D_LAB.png || (echo "LAB output file not created" && exit 1)
+  generate-images:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        n_components: [2, 3]
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-    - name: Upload generated images as artifacts
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Generate all ${{ matrix.n_components }}D colormap and embedding examples
+      run: |
+        mkdir -p docs/images
+        miniature data/WD-76845-003_ROI01.ome.tif docs/images/example.png \
+          --n_components ${{ matrix.n_components }} --colormap ALL --plot_embedding
+
+    - name: Rename embedding plots for README
+      run: |
+        # Copy the primary embedding plot for each dimension (LAB for 3D, TEULING2 for 2D)
+        if [ ${{ matrix.n_components }} -eq 3 ]; then
+          cp docs/images/example_LAB-embedding.png docs/images/embedding_3d.png
+        else
+          cp docs/images/example_TEULING2-embedding.png docs/images/embedding_2d.png
+        fi
+
+    - name: Upload generated images
+      uses: actions/upload-artifact@v4
+      with:
+        name: images-${{ matrix.n_components }}d
+        path: docs/images/*.png
+        retention-days: 7
+
+  channel-mosaic:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Generate channel mosaic
+      run: |
+        mkdir -p docs/images
+        python << 'EOF'
+        import tifffile
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import xml.etree.ElementTree as ET
+
+        with tifffile.TiffFile('data/WD-76845-003_ROI01.ome.tif') as tif:
+            data = tif.asarray()
+            channel_names = []
+            if tif.ome_metadata:
+                root = ET.fromstring(tif.ome_metadata)
+                ns = {'ome': 'http://www.openmicroscopy.org/Schemas/OME/2016-06'}
+                channels = root.findall('.//ome:Channel', ns)
+                for ch in channels:
+                    channel_names.append(ch.get('Name', f'Ch{len(channel_names)}'))
+            else:
+                channel_names = [f'Ch{i}' for i in range(data.shape[0])]
+
+        n_channels, n_cols = data.shape[0], 5
+        n_rows = int(np.ceil(n_channels / n_cols))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, n_rows * 2.4))
+        axes = axes.flatten()
+
+        for i in range(n_channels):
+            channel_data = data[i].astype(float)
+            vmin, vmax = np.percentile(channel_data, [1, 99])
+            channel_data = np.clip((channel_data - vmin) / (vmax - vmin + 1e-8), 0, 1)
+            axes[i].imshow(channel_data, cmap='gray')
+            axes[i].set_title(channel_names[i], fontsize=9, fontweight='bold')
+            axes[i].axis('off')
+
+        for i in range(n_channels, len(axes)):
+            axes[i].axis('off')
+
+        plt.tight_layout()
+        plt.savefig('docs/images/channel_mosaic.png', dpi=150, bbox_inches='tight', facecolor='white')
+        EOF
+
+    - name: Upload channel mosaic
+      uses: actions/upload-artifact@v4
+      with:
+        name: images-channel-mosaic
+        path: docs/images/channel_mosaic.png
+        retention-days: 7
+
+  commit-images:
+    needs: [generate-images, channel-mosaic]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref }}
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Download all image artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: images-*
+        path: docs/images
+        merge-multiple: true
+
+    - name: Check for image changes and commit
+      run: |
+        git add docs/images/
+        if ! git diff --cached --quiet; then
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs: update example images [automated]"
+          git push
+        fi
+
+    - name: Upload all images as final artifact
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: miniature-outputs-py${{ matrix.python-version }}
-        path: |
-          output_mif_3D_LAB.png
+        name: miniature-outputs-final
+        path: docs/images/*.png
         retention-days: 7

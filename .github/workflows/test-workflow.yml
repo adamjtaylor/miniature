@@ -34,11 +34,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        include:
-          - n_components: 3
-            embedding_colormap: LAB
-          - n_components: 2
-            embedding_colormap: BREMM
+        n_components: [2, 3]
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -54,18 +50,20 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
 
-    - name: Generate all ${{ matrix.n_components }}D colormap examples
+    - name: Generate all ${{ matrix.n_components }}D colormap and embedding examples
       run: |
         mkdir -p docs/images
         miniature data/WD-76845-003_ROI01.ome.tif docs/images/example.png \
-          --n_components ${{ matrix.n_components }} --colormap ALL
+          --n_components ${{ matrix.n_components }} --colormap ALL --plot_embedding
 
-    - name: Generate ${{ matrix.n_components }}D embedding plot
+    - name: Rename embedding plots for README
       run: |
-        miniature data/WD-76845-003_ROI01.ome.tif docs/images/embedding_${{ matrix.n_components }}d_temp.png \
-          --n_components ${{ matrix.n_components }} --colormap ${{ matrix.embedding_colormap }} --plot_embedding
-        mv docs/images/embedding_${{ matrix.n_components }}d_temp-embedding.png docs/images/embedding_${{ matrix.n_components }}d.png
-        rm docs/images/embedding_${{ matrix.n_components }}d_temp.png
+        # Copy the primary embedding plot for each dimension (LAB for 3D, TEULING2 for 2D)
+        if [ ${{ matrix.n_components }} -eq 3 ]; then
+          cp docs/images/example_LAB-embedding.png docs/images/embedding_3d.png
+        else
+          cp docs/images/example_TEULING2-embedding.png docs/images/embedding_2d.png
+        fi
 
     - name: Upload generated images
       uses: actions/upload-artifact@v4

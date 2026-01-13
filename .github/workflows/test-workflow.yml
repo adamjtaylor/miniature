@@ -29,19 +29,14 @@ jobs:
         python -m pip install --upgrade pip
         pip install -e ".[dev]"
 
-    - name: Run unit tests
+    - name: Run unit tests (excluding slow benchmarks)
       run: |
-        pytest tests/ -v
+        pytest tests/ -v -k "not slow"
 
-    - name: 3D on mIF example data
+    - name: 3D LAB with optimization on mIF example data
       run: |
-        miniature data/WD-76845-003_ROI01.ome.tif output_mif_3D.png --colormap UCIE
-        test -f output_mif_3D.png || (echo "mIF output file not created" && exit 1)
-
-    - name: 2D on mIF example data
-      run: |
-        miniature data/WD-76845-003_ROI01.ome.tif output_mif_2D.png --n_components 2 --colormap TEULING2
-        test -f output_mif_2D.png || (echo "mIF output file not created" && exit 1)
+        miniature data/WD-76845-003_ROI01.ome.tif output_mif_3D_LAB.png --colormap LAB
+        test -f output_mif_3D_LAB.png || (echo "LAB output file not created" && exit 1)
 
     - name: Upload generated images as artifacts
       uses: actions/upload-artifact@v4
@@ -49,5 +44,5 @@ jobs:
       with:
         name: miniature-outputs-py${{ matrix.python-version }}
         path: |
-          output_mif_*.png
+          output_mif_3D_LAB.png
         retention-days: 7

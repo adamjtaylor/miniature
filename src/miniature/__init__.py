@@ -9,6 +9,7 @@ __version__ = "2.0.0"
 
 from .core import (
     pull_pyramid,
+    resize_if_needed,
     remove_background,
     keep_background,
     run_pca,
@@ -24,6 +25,7 @@ from .core import (
 __all__ = [
     "__version__",
     "pull_pyramid",
+    "resize_if_needed",
     "remove_background",
     "keep_background",
     "run_pca",

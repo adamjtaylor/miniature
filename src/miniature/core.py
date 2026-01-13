@@ -21,6 +21,7 @@ import zarr
 from PIL import Image
 from skimage.filters import threshold_otsu
 from skimage.morphology import remove_small_objects
+from skimage.transform import resize
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
 from sklearn.preprocessing import MinMaxScaler, RobustScaler, StandardScaler
@@ -104,6 +105,64 @@ def pull_pyramid(input_path: str, max_pixels: int = 512 * 512) -> zarr.Array:
     return zarray
 
 
+def resize_if_needed(zarray: zarr.Array, max_pixels: int = None) -> np.ndarray:
+    """
+    Automatically resize image if it exceeds max_pixels threshold.
+
+    Args:
+        zarray: Input image array (channels x height x width)
+        max_pixels: Maximum number of pixels allowed (None = no limit)
+
+    Returns:
+        Resized numpy array (channels x new_height x new_width) or original as numpy array
+    """
+    # Convert to numpy array for processing
+    image_array = np.array(zarray)
+
+    # If no limit set, return as-is
+    if max_pixels is None:
+        return image_array
+
+    n_channels, height, width = image_array.shape
+    current_pixels = height * width
+
+    # If within limits, return as-is
+    if current_pixels <= max_pixels:
+        print(f"Image size ({width} x {height} = {current_pixels} pixels) is within max_pixels limit")
+        return image_array
+
+    # Calculate scaling factor to maintain aspect ratio
+    scale = np.sqrt(max_pixels / current_pixels)
+    new_width = int(width * scale)
+    new_height = int(height * scale)
+
+    print(f"Image size ({width} x {height} = {current_pixels} pixels) exceeds max_pixels ({max_pixels}). "
+          f"Resizing to ({new_width} x {new_height} = {new_width * new_height} pixels)...")
+
+    # Resize each channel separately to preserve multi-channel data
+    resized_channels = []
+    for i in range(n_channels):
+        # Use order=1 (bilinear) for smoother results without artifacts
+        # anti_aliasing=True to reduce aliasing artifacts
+        resized_channel = resize(
+            image_array[i],
+            (new_height, new_width),
+            order=1,
+            preserve_range=True,
+            anti_aliasing=True
+        )
+        resized_channels.append(resized_channel)
+
+    resized_array = np.stack(resized_channels, axis=0)
+
+    # Ensure the data type is preserved
+    resized_array = resized_array.astype(image_array.dtype)
+
+    print(f"Resizing complete. New shape: {resized_array.shape}")
+
+    return resized_array
+
+
 def crop_center(input_path: str, size: int = 256) -> np.ndarray:
     """Extract a centered square region from the image."""
     store = tifffile.imread(input_path, aszarr=True)
@@ -117,19 +176,22 @@ def crop_center(input_path: str, size: int = 256) -> np.ndarray:
     return z[0][:, xmin:xmax, ymin:ymax]
 
 
-def remove_background(zarray: zarr.Array, pseudocount: float) -> tuple:
+def remove_background(zarray, pseudocount: float) -> tuple:
     """
     Remove background pixels using Otsu thresholding.
 
     Args:
-        zarray: Input image array (channels x height x width)
+        zarray: Input image array (channels x height x width), can be zarr.Array or np.ndarray
         pseudocount: Pseudocount for log transformation
 
     Returns:
         Tuple of (tissue_array, mask) where tissue_array is (n_pixels, n_channels)
     """
     print("Finding background")
-    sum_image = np.array(zarray).sum(axis=0)
+    # Ensure we have a numpy array
+    if not isinstance(zarray, np.ndarray):
+        zarray = np.array(zarray)
+    sum_image = zarray.sum(axis=0)
     print(f'Using pseudocount of {pseudocount}')
     log_image = np.log2(sum_image + pseudocount)
     thresh = threshold_otsu(log_image[log_image > np.log2(pseudocount)])
@@ -137,19 +199,22 @@ def remove_background(zarray: zarr.Array, pseudocount: float) -> tuple:
     cleaned = remove_small_objects(binary)
     print("Background removed")
 
-    tissue_array = np.array(zarray)[:, cleaned].T
+    tissue_array = zarray[:, cleaned].T
     print(f"Selected {tissue_array.shape[0]} of {zarray.shape[1] * zarray.shape[2]} pixels as tissue")
     print(f"Pixels x channels matrix: {tissue_array.shape}")
 
     return tissue_array, cleaned
 
 
-def keep_background(zarray: zarr.Array) -> tuple:
+def keep_background(zarray) -> tuple:
     """Keep all pixels including background."""
     print("Preserving background")
+    # Ensure we have a numpy array
+    if not isinstance(zarray, np.ndarray):
+        zarray = np.array(zarray)
     shape = zarray.shape[1:]
     everything = np.ones(shape, dtype=bool)
-    tissue_array = np.array(zarray)[:, everything].T
+    tissue_array = zarray[:, everything].T
     print(f"Pixels x channels matrix: {tissue_array.shape}")
     return tissue_array, everything
 
@@ -460,9 +525,14 @@ def main():
     else:
         zarray = pull_pyramid(args.input, max_pixels=args.max_pixels)
 
+    # Apply automatic resizing if needed
+    # Convert zarr array to numpy array with automatic downsample if exceeds max_pixels
+    zarray = resize_if_needed(zarray, max_pixels=args.max_pixels)
+
     # Handle 3-channel (RGB) images directly
     if zarray.shape[0] == 3:
-        rgb_image = np.moveaxis(np.array(zarray), 0, -1)
+        # zarray is now a numpy array after resize_if_needed
+        rgb_image = np.moveaxis(zarray, 0, -1)
         print(f"Saving RGB image as {args.output}")
         im = Image.fromarray(rgb_image.astype(np.uint8), 'RGB')
         im.save(args.output)

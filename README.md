@@ -4,6 +4,26 @@
 
 Miniature applies dimensionality reduction (UMAP, t-SNE, or PCA) to multiplexed tissue imaging data and maps the low-dimensional embeddings to perceptually meaningful color spaces, creating intuitive visual representations of complex spectral data.
 
+## Examples
+
+### 3D Colormap Outputs (UMAP → 3 components)
+
+| LAB | RGB | OKLAB |
+|-----|-----|-------|
+| ![LAB](docs/images/example_LAB.png) | ![RGB](docs/images/example_RGB.png) | ![OKLAB](docs/images/example_OKLAB.png) |
+
+### 2D Colormap Outputs (UMAP → 2 components)
+
+| BREMM | SCHUMANN | STEIGER |
+|-------|----------|---------|
+| ![BREMM](docs/images/example_BREMM.png) | ![SCHUMANN](docs/images/example_SCHUMANN.png) | ![STEIGER](docs/images/example_STEIGER.png) |
+
+| TEULING2 | ZIEGLER | CUBEDIAGONAL |
+|----------|---------|--------------|
+| ![TEULING2](docs/images/example_TEULING2.png) | ![ZIEGLER](docs/images/example_ZIEGLER.png) | ![CUBEDIAGONAL](docs/images/example_CUBEDIAGONAL.png) |
+
+*Generated from multiplexed immunofluorescence tissue imaging data.*
+
 ## Features
 
 - **Multiple dimensionality reduction methods**: UMAP, t-SNE, PCA

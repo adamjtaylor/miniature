@@ -17,6 +17,9 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref || github.ref }}
+        token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -38,6 +41,28 @@ jobs:
         miniature data/WD-76845-003_ROI01.ome.tif output_mif_3D_LAB.png --colormap LAB
         test -f output_mif_3D_LAB.png || (echo "LAB output file not created" && exit 1)
 
+    - name: Generate all 3D colormap examples (LAB, RGB, OKLAB)
+      run: |
+        mkdir -p docs/images
+        miniature data/WD-76845-003_ROI01.ome.tif docs/images/example.png \
+          --n_components 3 --colormap ALL
+
+    - name: Generate all 2D colormap examples
+      run: |
+        miniature data/WD-76845-003_ROI01.ome.tif docs/images/example.png \
+          --n_components 2 --colormap ALL
+
+    - name: Check for image changes and commit
+      if: github.event_name == 'pull_request'
+      run: |
+        git add docs/images/
+        if ! git diff --cached --quiet; then
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "docs: update example images [automated]"
+          git push
+        fi
+
     - name: Upload generated images as artifacts
       uses: actions/upload-artifact@v4
       if: always()
@@ -45,4 +70,5 @@ jobs:
         name: miniature-outputs-py${{ matrix.python-version }}
         path: |
           output_mif_3D_LAB.png
+          docs/images/*.png
         retention-days: 7

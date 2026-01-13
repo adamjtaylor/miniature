@@ -211,6 +211,45 @@ def assign_colours_lab(embedding: np.ndarray) -> np.ndarray:
     return rgb
 
 
+def assign_colours_oklab(embedding: np.ndarray) -> np.ndarray:
+    """
+    Map 3D embedding to OKLab color space (vectorized).
+
+    OKLab provides better perceptual uniformity than CIELAB, with
+    Euclidean distance directly corresponding to perceived color difference.
+
+    Args:
+        embedding: (n_pixels, 3) array of embedding coordinates
+
+    Returns:
+        (n_pixels, 3) array of RGB values in [0, 1]
+    """
+    print("Assigning OKLab colours to embedding (vectorized)")
+
+    # Scale dimensions to OKLab ranges
+    # L range: [0, 1]
+    # a, b range: approximately [-0.4, 0.4] for sRGB gamut
+    scaler_ab = MinMaxScaler(feature_range=(-0.4, 0.4))
+    scaler_l = MinMaxScaler(feature_range=(0, 1))
+
+    dim1 = scaler_ab.fit_transform(embedding[:, 0:1])
+    dim2 = scaler_ab.fit_transform(embedding[:, 1:2])
+    dim3 = scaler_l.fit_transform(embedding[:, 2:3])
+
+    # OKLab array: [L, a, b] - note: L is third dimension in embedding
+    oklab = np.hstack([dim3, dim1, dim2])
+
+    # Vectorized OKLab to RGB conversion using colour-science
+    xyz = colour.Oklab_to_XYZ(oklab)
+    rgb = colour.XYZ_to_sRGB(xyz)
+
+    # Clamp to valid RGB range
+    rgb = np.clip(rgb, 0, 1)
+
+    print("OKLab colors assigned")
+    return rgb
+
+
 def assign_colours_rgb(embedding: np.ndarray) -> np.ndarray:
     """
     Map 3D embedding directly to RGB (vectorized).
@@ -386,7 +425,7 @@ def main():
 
     parser.add_argument('--colormap', type=str, dest='colormap', default='ALL',
                         choices=['ALL', 'BREMM', 'SCHUMANN', 'STEIGER', 'TEULING2',
-                                 'ZIEGLER', 'CUBEDIAGONAL', 'LAB', 'RGB', 'UCIE'],
+                                 'ZIEGLER', 'CUBEDIAGONAL', 'LAB', 'OKLAB', 'RGB', 'UCIE'],
                         help='Colormap for visualization')
 
     parser.add_argument('--optimize', action='store_true', default=True,
@@ -474,7 +513,7 @@ def main():
     # Select colormaps based on dimensions
     if args.colormap == "ALL":
         if args.n_components == 3:
-            selected_colormaps = ['LAB', 'RGB']
+            selected_colormaps = ['LAB', 'OKLAB', 'RGB']
         else:
             selected_colormaps = list(COLORMAPS_2D.keys())
     else:
@@ -490,6 +529,11 @@ def main():
                     rgb = optimize_embedding(embedding, target='LAB')
                 else:
                     rgb = assign_colours_lab(embedding)
+            elif cmap == 'OKLAB':
+                if args.optimize:
+                    rgb = optimize_embedding(embedding, target='OKLAB')
+                else:
+                    rgb = assign_colours_oklab(embedding)
             elif cmap == 'RGB':
                 if args.optimize:
                     rgb = optimize_embedding(embedding, target='RGB')

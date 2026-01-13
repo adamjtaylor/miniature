@@ -164,3 +164,75 @@ def test_ucie_2d_performance():
 
     print(f"\n100k point 2D optimization took {elapsed:.2f}s")
     assert elapsed < 120, f"2D Optimization took too long: {elapsed:.2f}s"
+
+
+def test_generate_oklab_grid():
+    """Test OKLab grid generation."""
+    from miniature.ucie import generate_oklab_grid
+
+    grid = generate_oklab_grid(n_points=16)
+
+    # Should have valid OKLab values
+    assert grid.shape[1] == 3
+    assert np.all(grid[:, 0] >= 0) and np.all(grid[:, 0] <= 1)  # L in [0, 1]
+    assert len(grid) > 0  # Should have some valid colors
+
+
+def test_oklab_to_rgb_vectorized():
+    """Test OKLab to RGB conversion."""
+    from miniature.ucie import oklab_to_rgb_vectorized
+
+    # Valid OKLab values (L=0.5, a=0, b=0 is neutral gray)
+    oklab = np.array([[0.5, 0.0, 0.0], [0.8, 0.1, -0.1], [0.3, -0.1, 0.1]])
+
+    rgb = oklab_to_rgb_vectorized(oklab)
+
+    assert rgb.shape == (3, 3)
+    assert np.all(rgb >= 0) and np.all(rgb <= 1)
+
+
+def test_optimize_embedding_oklab():
+    """Test that optimize_embedding works with OKLAB target."""
+    from miniature.ucie import optimize_embedding
+
+    rng = np.random.default_rng(42)
+    embedding = rng.standard_normal((500, 3))
+
+    rgb = optimize_embedding(embedding, target='OKLAB', verbose=False)
+
+    assert rgb.shape == (500, 3)
+    assert np.all(rgb >= 0) and np.all(rgb <= 1)
+
+
+def test_get_target_hull_oklab():
+    """Test that OKLab hull is cached correctly."""
+    from miniature.ucie import get_target_hull, _HULL_CACHE
+
+    # Clear cache
+    _HULL_CACHE.clear()
+
+    hull1, eq1 = get_target_hull('OKLAB')
+    assert ('OKLAB', 32) in _HULL_CACHE
+
+    # Second call should return cached result
+    hull2, eq2 = get_target_hull('OKLAB')
+    assert hull1 is hull2
+
+
+@pytest.mark.slow
+def test_oklab_performance():
+    """Benchmark OKLab optimization on realistic embedding size."""
+    from miniature.ucie import optimize_embedding
+
+    rng = np.random.default_rng(42)
+    embedding = rng.standard_normal((100_000, 3))
+
+    start = time.perf_counter()
+    result = optimize_embedding(embedding, target='OKLAB', verbose=False)
+    elapsed = time.perf_counter() - start
+
+    assert result.shape == (100_000, 3)
+    assert np.all(result >= 0) and np.all(result <= 1)
+
+    print(f"\n100k point OKLab optimization took {elapsed:.2f}s")
+    assert elapsed < 120, f"OKLab optimization took too long: {elapsed:.2f}s"

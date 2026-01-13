@@ -101,7 +101,7 @@ def get_target_hull(target: str, n_points: int = 32):
     """Get cached convex hull and equations for target colorspace.
 
     Args:
-        target: 'LAB' or 'RGB'
+        target: 'LAB', 'OKLAB', or 'RGB'
         n_points: Grid resolution per dimension
 
     Returns:
@@ -111,6 +111,8 @@ def get_target_hull(target: str, n_points: int = 32):
     if cache_key not in _HULL_CACHE:
         if target == 'LAB':
             grid = generate_lab_grid(n_points=n_points)
+        elif target == 'OKLAB':
+            grid = generate_oklab_grid(n_points=n_points)
         elif target == 'RGB':
             grid = generate_rgb_grid(n_points=n_points)
         else:
@@ -168,6 +170,44 @@ def generate_lab_grid(
     )
 
     return lab_grid[mask]
+
+
+def generate_oklab_grid(
+        l_lims=(0, 1),
+        a_lims=(-0.4, 0.4),
+        b_lims=(-0.4, 0.4),
+        n_points=32
+) -> np.ndarray:
+    """
+    Generate a grid of OKLab colors within the sRGB gamut.
+
+    OKLab provides better perceptual uniformity than CIELAB, with
+    Euclidean distance directly corresponding to perceived color difference.
+
+    Args:
+        l_lims: Lightness range [0, 1]
+        a_lims: a channel range (approx [-0.4, 0.4] for sRGB)
+        b_lims: b channel range (approx [-0.4, 0.4] for sRGB)
+        n_points: Number of points per dimension
+
+    Returns:
+        Array of valid OKLab colors within sRGB gamut
+    """
+    rgb_values = np.linspace(0, 1, n_points)
+    rgb_grid = np.array(np.meshgrid(rgb_values, rgb_values, rgb_values)).T.reshape(-1, 3)
+
+    # Vectorized conversion to OKLab
+    xyz = colour.sRGB_to_XYZ(rgb_grid)
+    oklab_grid = colour.XYZ_to_Oklab(xyz)
+
+    # Filter by OKLab limits (all should pass since we start from valid sRGB)
+    mask = (
+        (oklab_grid[:, 0] >= l_lims[0]) & (oklab_grid[:, 0] <= l_lims[1]) &
+        (oklab_grid[:, 1] >= a_lims[0]) & (oklab_grid[:, 1] <= a_lims[1]) &
+        (oklab_grid[:, 2] >= b_lims[0]) & (oklab_grid[:, 2] <= b_lims[1])
+    )
+
+    return oklab_grid[mask]
 
 
 def rotation_matrix(rot_x: float, rot_y: float, rot_z: float) -> np.ndarray:
@@ -260,6 +300,13 @@ def lab_to_rgb_vectorized(lab: np.ndarray) -> np.ndarray:
     return np.clip(rgb, 0, 1)
 
 
+def oklab_to_rgb_vectorized(oklab: np.ndarray) -> np.ndarray:
+    """Convert OKLab to RGB using colour-science (vectorized)."""
+    xyz = colour.Oklab_to_XYZ(oklab)
+    rgb = colour.XYZ_to_sRGB(xyz)
+    return np.clip(rgb, 0, 1)
+
+
 def optimize_embedding(
         embedding: np.ndarray,
         target: str = 'LAB',
@@ -276,7 +323,7 @@ def optimize_embedding(
 
     Args:
         embedding: (N, 3) array of embedding coordinates
-        target: Target colorspace, either 'LAB' or 'RGB'
+        target: Target colorspace: 'LAB', 'OKLAB', or 'RGB'
         save_plots: Whether to save debug plots
         verbose: Whether to print progress messages
         n_support_directions: Number of directions for support point sampling
@@ -284,8 +331,8 @@ def optimize_embedding(
     Returns:
         (N, 3) array of RGB values in [0, 1]
     """
-    if target not in ('LAB', 'RGB'):
-        raise ValueError(f"Unknown target colorspace: {target}. Use 'LAB' or 'RGB'.")
+    if target not in ('LAB', 'OKLAB', 'RGB'):
+        raise ValueError(f"Unknown target colorspace: {target}. Use 'LAB', 'OKLAB', or 'RGB'.")
 
     if verbose:
         print(f'Getting target colorspace hull ({target})')
@@ -370,6 +417,10 @@ def optimize_embedding(
         if verbose:
             print('Converting LAB to RGB (vectorized)')
         rgb = lab_to_rgb_vectorized(transformed)
+    elif target == 'OKLAB':
+        if verbose:
+            print('Converting OKLab to RGB (vectorized)')
+        rgb = oklab_to_rgb_vectorized(transformed)
     else:  # RGB
         if verbose:
             print('Clamping RGB values')

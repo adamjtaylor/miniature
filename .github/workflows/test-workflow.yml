@@ -41,9 +41,63 @@ jobs:
         miniature data/WD-76845-003_ROI01.ome.tif output_mif_3D_LAB.png --colormap LAB
         test -f output_mif_3D_LAB.png || (echo "LAB output file not created" && exit 1)
 
-    - name: Generate all 3D colormap examples (LAB, RGB, OKLAB)
+    - name: Generate channel mosaic
       run: |
         mkdir -p docs/images
+        python << 'EOF'
+        import tifffile
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import xml.etree.ElementTree as ET
+
+        with tifffile.TiffFile('data/WD-76845-003_ROI01.ome.tif') as tif:
+            data = tif.asarray()
+            channel_names = []
+            if tif.ome_metadata:
+                root = ET.fromstring(tif.ome_metadata)
+                ns = {'ome': 'http://www.openmicroscopy.org/Schemas/OME/2016-06'}
+                channels = root.findall('.//ome:Channel', ns)
+                for ch in channels:
+                    channel_names.append(ch.get('Name', f'Ch{len(channel_names)}'))
+            else:
+                channel_names = [f'Ch{i}' for i in range(data.shape[0])]
+
+        n_channels, n_cols = data.shape[0], 5
+        n_rows = int(np.ceil(n_channels / n_cols))
+        fig, axes = plt.subplots(n_rows, n_cols, figsize=(12, n_rows * 2.4))
+        axes = axes.flatten()
+
+        for i in range(n_channels):
+            channel_data = data[i].astype(float)
+            vmin, vmax = np.percentile(channel_data, [1, 99])
+            channel_data = np.clip((channel_data - vmin) / (vmax - vmin + 1e-8), 0, 1)
+            axes[i].imshow(channel_data, cmap='gray')
+            axes[i].set_title(channel_names[i], fontsize=9, fontweight='bold')
+            axes[i].axis('off')
+
+        for i in range(n_channels, len(axes)):
+            axes[i].axis('off')
+
+        plt.tight_layout()
+        plt.savefig('docs/images/channel_mosaic.png', dpi=150, bbox_inches='tight', facecolor='white')
+        EOF
+
+    - name: Generate 3D embedding plot
+      run: |
+        miniature data/WD-76845-003_ROI01.ome.tif docs/images/embedding_3d_temp.png \
+          --n_components 3 --colormap LAB --plot_embedding
+        mv docs/images/embedding_3d_temp-embedding.png docs/images/embedding_3d.png
+        rm docs/images/embedding_3d_temp.png
+
+    - name: Generate 2D embedding plot
+      run: |
+        miniature data/WD-76845-003_ROI01.ome.tif docs/images/embedding_2d_temp.png \
+          --n_components 2 --colormap BREMM --plot_embedding
+        mv docs/images/embedding_2d_temp-embedding.png docs/images/embedding_2d.png
+        rm docs/images/embedding_2d_temp.png
+
+    - name: Generate all 3D colormap examples (LAB, RGB, OKLAB)
+      run: |
         miniature data/WD-76845-003_ROI01.ome.tif docs/images/example.png \
           --n_components 3 --colormap ALL
 

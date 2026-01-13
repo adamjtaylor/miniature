@@ -6,6 +6,16 @@ Miniature applies dimensionality reduction (UMAP, t-SNE, or PCA) to multiplexed 
 
 ## Examples
 
+### Input: Multiplexed Tissue Imaging (25 channels)
+
+![Channel Mosaic](docs/images/channel_mosaic.png)
+
+### UMAP Embeddings
+
+| 3D Embedding | 2D Embedding |
+|--------------|--------------|
+| ![3D Embedding](docs/images/embedding_3d.png) | ![2D Embedding](docs/images/embedding_2d.png) |
+
 ### 3D Colormap Outputs (UMAP → 3 components)
 
 | LAB | RGB | OKLAB |
@@ -22,7 +32,7 @@ Miniature applies dimensionality reduction (UMAP, t-SNE, or PCA) to multiplexed 
 |----------|---------|--------------|
 | ![TEULING2](docs/images/example_TEULING2.png) | ![ZIEGLER](docs/images/example_ZIEGLER.png) | ![CUBEDIAGONAL](docs/images/example_CUBEDIAGONAL.png) |
 
-*Generated from multiplexed immunofluorescence tissue imaging data.*
+*Generated from multiplexed immunofluorescence tissue imaging data (WD-76845-003_ROI01).*
 
 ## Features
 

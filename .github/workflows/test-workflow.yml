@@ -10,21 +10,14 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ['3.11']
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      with:
-        ref: ${{ github.head_ref || github.ref }}
-        token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Set up Python ${{ matrix.python-version }}
+    - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ matrix.python-version }}
+        python-version: '3.11'
         cache: 'pip'
 
     - name: Install dependencies
@@ -36,10 +29,68 @@ jobs:
       run: |
         pytest tests/ -v -k "not slow"
 
-    - name: 3D LAB with optimization on mIF example data
+  generate-images:
+    needs: test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - n_components: 3
+            embedding_colormap: LAB
+          - n_components: 2
+            embedding_colormap: BREMM
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
       run: |
-        miniature data/WD-76845-003_ROI01.ome.tif output_mif_3D_LAB.png --colormap LAB
-        test -f output_mif_3D_LAB.png || (echo "LAB output file not created" && exit 1)
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Generate all ${{ matrix.n_components }}D colormap examples
+      run: |
+        mkdir -p docs/images
+        miniature data/WD-76845-003_ROI01.ome.tif docs/images/example.png \
+          --n_components ${{ matrix.n_components }} --colormap ALL
+
+    - name: Generate ${{ matrix.n_components }}D embedding plot
+      run: |
+        miniature data/WD-76845-003_ROI01.ome.tif docs/images/embedding_${{ matrix.n_components }}d_temp.png \
+          --n_components ${{ matrix.n_components }} --colormap ${{ matrix.embedding_colormap }} --plot_embedding
+        mv docs/images/embedding_${{ matrix.n_components }}d_temp-embedding.png docs/images/embedding_${{ matrix.n_components }}d.png
+        rm docs/images/embedding_${{ matrix.n_components }}d_temp.png
+
+    - name: Upload generated images
+      uses: actions/upload-artifact@v4
+      with:
+        name: images-${{ matrix.n_components }}d
+        path: docs/images/*.png
+        retention-days: 7
+
+  channel-mosaic:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python 3.11
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
 
     - name: Generate channel mosaic
       run: |
@@ -82,32 +133,32 @@ jobs:
         plt.savefig('docs/images/channel_mosaic.png', dpi=150, bbox_inches='tight', facecolor='white')
         EOF
 
-    - name: Generate 3D embedding plot
-      run: |
-        miniature data/WD-76845-003_ROI01.ome.tif docs/images/embedding_3d_temp.png \
-          --n_components 3 --colormap LAB --plot_embedding
-        mv docs/images/embedding_3d_temp-embedding.png docs/images/embedding_3d.png
-        rm docs/images/embedding_3d_temp.png
+    - name: Upload channel mosaic
+      uses: actions/upload-artifact@v4
+      with:
+        name: images-channel-mosaic
+        path: docs/images/channel_mosaic.png
+        retention-days: 7
 
-    - name: Generate 2D embedding plot
-      run: |
-        miniature data/WD-76845-003_ROI01.ome.tif docs/images/embedding_2d_temp.png \
-          --n_components 2 --colormap BREMM --plot_embedding
-        mv docs/images/embedding_2d_temp-embedding.png docs/images/embedding_2d.png
-        rm docs/images/embedding_2d_temp.png
+  commit-images:
+    needs: [generate-images, channel-mosaic]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref }}
+        token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Generate all 3D colormap examples (LAB, RGB, OKLAB)
-      run: |
-        miniature data/WD-76845-003_ROI01.ome.tif docs/images/example.png \
-          --n_components 3 --colormap ALL
-
-    - name: Generate all 2D colormap examples
-      run: |
-        miniature data/WD-76845-003_ROI01.ome.tif docs/images/example.png \
-          --n_components 2 --colormap ALL
+    - name: Download all image artifacts
+      uses: actions/download-artifact@v4
+      with:
+        pattern: images-*
+        path: docs/images
+        merge-multiple: true
 
     - name: Check for image changes and commit
-      if: github.event_name == 'pull_request'
       run: |
         git add docs/images/
         if ! git diff --cached --quiet; then
@@ -117,12 +168,10 @@ jobs:
           git push
         fi
 
-    - name: Upload generated images as artifacts
+    - name: Upload all images as final artifact
       uses: actions/upload-artifact@v4
       if: always()
       with:
-        name: miniature-outputs-py${{ matrix.python-version }}
-        path: |
-          output_mif_3D_LAB.png
-          docs/images/*.png
+        name: miniature-outputs-final
+        path: docs/images/*.png
         retention-days: 7

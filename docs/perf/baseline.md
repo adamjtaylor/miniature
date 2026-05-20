@@ -76,8 +76,9 @@ Observations:
 
 ## delta_E scaling
 
-From `tests/test_delta_e_scaling.py`. Confirms O(N²) cost; per-call
-Python + `colour.delta_E` dispatch dominates, not the math.
+From `tests/test_delta_e_scaling.py`.
+
+### Before Phase 2 (Python loop calling `colour.delta_E` per pair)
 
 | N | `delta_e_distance_matrix` | `delta_e_pdist` |
 |---|-------------------------:|----------------:|
@@ -85,7 +86,23 @@ Python + `colour.delta_E` dispatch dominates, not the math.
 | 1,000 | 28.738 s | 28.646 s |
 | 3,000 | 256.429 s | 257.407 s |
 
-Extrapolated to N=10k ≈ 47 min. Targeted by Phase 2.
+Extrapolated to N=10k ≈ 47 min. The cost was per-call Python+library
+dispatch, not the math.
+
+### After Phase 2 (vectorised `colour.delta_E` over `triu_indices`)
+
+| N | `delta_e_distance_matrix` | `delta_e_pdist` | Speedup |
+|---|-------------------------:|----------------:|--------:|
+| 200 | 0.007 s | 0.004 s | **165–293×** |
+| 1,000 | 0.118 s | 0.081 s | **243–354×** |
+| 3,000 | 0.963 s | 0.840 s | **266–306×** |
+| 10,000 | 18.92 s | 14.94 s | (extrapolated 150–190×) |
+
+No Numba dependency required — `colour.delta_E` in colour-science ≥ 0.4
+already broadcasts. The fix was replacing the Python loop with a single
+broadcast call indexed via `np.triu_indices`. Output is byte-equivalent
+to the previous implementation to fp64 rounding (max abs diff ≤ 7e-15
+on a 100×100 synthetic).
 
 ## cProfile top time-consumers
 
@@ -123,3 +140,4 @@ code; the previous numbers stay in place as historical reference.
 |------|--------|-------|------:|-----:|---------:|-------|
 | 2026-05-20 | (pre-Phase 1) | `WD-76845-003_ROI01.ome.tif` | 10.7 s | 10.7 s | 772 MB | baseline |
 | 2026-05-20 | (pre-Phase 1) | `exemplar-001_small.tif` | 860.2 s | 860.0 s | 5,580 MB | baseline |
+| 2026-05-20 | zarr-fix + UMAP defaults | `exemplar-001_small.tif` | **59.0 s** | **58.8 s** | **3,447 MB** | **14.6× faster, 38% less RAM**. `init='random', n_jobs=-1` in `run_umap` + single-load in `remove_background`. |

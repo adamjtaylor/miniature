@@ -129,7 +129,8 @@ def remove_background(zarray: zarr.Array, pseudocount: float) -> tuple:
         Tuple of (tissue_array, mask) where tissue_array is (n_pixels, n_channels)
     """
     print("Finding background")
-    sum_image = np.array(zarray).sum(axis=0)
+    image = np.asarray(zarray)
+    sum_image = image.sum(axis=0)
     print(f'Using pseudocount of {pseudocount}')
     log_image = np.log2(sum_image + pseudocount)
     thresh = threshold_otsu(log_image[log_image > np.log2(pseudocount)])
@@ -137,7 +138,7 @@ def remove_background(zarray: zarr.Array, pseudocount: float) -> tuple:
     cleaned = remove_small_objects(binary)
     print("Background removed")
 
-    tissue_array = np.array(zarray)[:, cleaned].T
+    tissue_array = image[:, cleaned].T
     print(f"Selected {tissue_array.shape[0]} of {zarray.shape[1] * zarray.shape[2]} pixels as tissue")
     print(f"Pixels x channels matrix: {tissue_array.shape}")
 
@@ -149,7 +150,8 @@ def keep_background(zarray: zarr.Array) -> tuple:
     print("Preserving background")
     shape = zarray.shape[1:]
     everything = np.ones(shape, dtype=bool)
-    tissue_array = np.array(zarray)[:, everything].T
+    image = np.asarray(zarray)
+    tissue_array = image.reshape(image.shape[0], -1).T
     print(f"Pixels x channels matrix: {tissue_array.shape}")
     return tissue_array, everything
 

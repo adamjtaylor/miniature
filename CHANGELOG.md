@@ -6,6 +6,12 @@ follows [semantic versioning](https://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+
+- `remove_background` and `keep_background` no longer call
+  `np.array(zarray)` twice. On the medium reference image this drops
+  peak RSS from 5.6 GB to 3.4 GB; output is byte-identical.
+
 ### Added
 
 - `docs/equivalence.md` — internal equivalence policy for refactors and

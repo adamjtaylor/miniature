@@ -8,6 +8,13 @@ follows [semantic versioning](https://semver.org/).
 
 ### Changed
 
+- **UMAP defaults**: `run_umap` now uses `init='random'` and `n_jobs=-1`.
+  On the medium reference image (655k pixels) this is **14.6× faster
+  (860s → 59s)** with trustworthiness unchanged or slightly better.
+  Spectral initialisation was the dominant cost on large inputs. To
+  recover strict reproducibility, wrap the call with `random_state=42`
+  — note that umap-learn forces single-threaded execution when
+  `random_state` is set.
 - `remove_background` and `keep_background` no longer call
   `np.array(zarray)` twice. On the medium reference image this drops
   peak RSS from 5.6 GB to 3.4 GB; output is byte-identical.

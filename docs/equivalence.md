@@ -78,6 +78,13 @@ Seed: `42` everywhere a seed is accepted (`numpy.random.seed(42)`,
 `UMAP(random_state=42)`, `TSNE(random_state=42)`, multistart Neldermead with
 fixed seed in `ucie.py`).
 
+> ⚠️ **`random_state` vs. `n_jobs` trade-off in umap-learn.** Passing
+> `random_state` forces single-threaded execution and disables parallel
+> NN search — on the medium reference image this is **~14× slower** than
+> the production default (`init='random'`, `n_jobs=-1`, no seed). Use
+> `random_state=42` only for the equivalence harness; do not use it for
+> end-user runs or perf benchmarking.
+
 When the pin set changes, the baseline must be re-captured in the same PR.
 
 ## Baseline numbers

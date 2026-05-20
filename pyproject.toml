@@ -74,3 +74,6 @@ select = ["E", "F", "I", "W"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+    "benchmark: long-running performance benchmarks (deselect with -m 'not benchmark')",
+]

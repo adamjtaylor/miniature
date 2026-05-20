@@ -4,3 +4,9 @@ samplesheet.csv
 work/
 inputs/
 outputs/
+.venv/
+__pycache__/
+*.pyc
+docs/perf/_raw.txt
+docs/perf/*.prof
+uv.lock

@@ -27,7 +27,7 @@ jobs:
 
     - name: Run unit tests (excluding slow benchmarks)
       run: |
-        pytest tests/ -v -k "not slow"
+        pytest tests/ -v -k "not slow" -m "not benchmark"
 
   generate-images:
     needs: test

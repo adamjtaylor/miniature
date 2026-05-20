@@ -1,0 +1,91 @@
+# Changelog
+
+All notable changes to Miniature are documented here. The format follows
+[Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
+follows [semantic versioning](https://semver.org/).
+
+## [Unreleased]
+
+### Changed
+
+- **UMAP defaults**: `run_umap` now uses `init='random'` and `n_jobs=-1`.
+  On the medium reference image (655k pixels) this is **14.6× faster
+  (860s → 59s)** with trustworthiness unchanged or slightly better.
+  Spectral initialisation was the dominant cost on large inputs. To
+  recover strict reproducibility, wrap the call with `random_state=42`
+  — note that umap-learn forces single-threaded execution when
+  `random_state` is set.
+- `remove_background` and `keep_background` no longer call
+  `np.array(zarray)` twice. On the medium reference image this drops
+  peak RSS from 5.6 GB to 3.4 GB; output is byte-identical.
+- `assign_colours_lab`, `assign_colours_oklab`, `assign_colours_rgb`,
+  and `assign_colours_2d` replace the per-dimension `MinMaxScaler`
+  calls with a single broadcast normalisation. Output is byte-equivalent
+  to fp64 rounding (max abs diff ≤ 6e-14 on a 50k-point synthetic
+  input); not a measurable wall-time win on top of the UMAP cost, but
+  the code is shorter and avoids three scaler instantiations per
+  colormap.
+- `delta_e_distance_matrix` (`trustworthiness.py`) and `delta_e_pdist`
+  (`metrics.py`) replace the per-pair Python loop calling
+  `colour.delta_E` with a single broadcast call indexed via
+  `np.triu_indices`. **~250× faster at N=3000** (256s → 1s) with
+  byte-equivalent output (max abs diff ≤ 7e-15 on a 100×100 synthetic).
+  N=10k drops from an extrapolated 47 min to 19 s. No new dependency —
+  `colour.delta_E` in colour-science ≥ 0.4 already broadcasts.
+
+### Added
+
+- `docs/equivalence.md` — internal equivalence policy for refactors and
+  perf work (metric-based thresholds, frozen reference image set, seed
+  policy, pinned dependency set).
+- `docs/perf/baseline.md` — captured baseline numbers for the pipeline
+  and the `delta_E` scaling on the pinned dependency set.
+- `tests/test_pipeline_benchmark.py` — whole-pipeline wall-time + peak-RSS
+  benchmark for the LAB / 3D path on the reference image set.
+- `tests/test_delta_e_scaling.py` — N=200/1000/3000 sweep over the
+  O(N²) perceptual-distance loop in `trustworthiness` and `metrics`.
+- `CITATION.cff` for GitHub "Cite this repository" support.
+- `CONTRIBUTING.md` documenting the equivalence policy and the
+  "benchmark before merge" rule.
+- AI assistance disclosure section in `README.md`.
+
+### Changed
+
+- `pyproject.toml` registers the `benchmark` pytest marker so the new
+  benchmarks can be excluded from fast CI with `-m "not benchmark"`.
+
+## [2.0.0] — pip-installable package, vectorised core
+
+### Added
+
+- Restructured as a `pip install miniature`-able package (`src/miniature/`).
+- OKLab colour space support for 3D embeddings (better perceptual uniformity
+  than CIELAB).
+- UCIE-style rotation optimisation for LAB/RGB colour assignment.
+- 2D bivariate colormaps: BREMM, CUBEDIAGONAL, SCHUMANN, STEIGER, TEULING2,
+  ZIEGLER.
+- Background removal via Otsu thresholding on log-summed channels.
+- HDF5 sidecar output (`--save_data`) with mask, tissue array, embedding,
+  and colormap arrays.
+- Nextflow batch pipeline (`nextflow/main.nf`).
+- Trustworthiness and perceptual-trustworthiness metrics via
+  `miniature-metrics`.
+- GitHub Actions test workflow and automated example-image regeneration.
+- Half-space convex-hull check (replaces Delaunay) for ~5–20× speedup on
+  UCIE optimisation.
+
+### Changed
+
+- Colour conversions vectorised via `colour-science` (removed per-pixel
+  Python loops).
+- Removed per-pixel multiprocessing overhead.
+- Pyramid level selection respects `--max_pixels` budget.
+
+## [1.0] — original implementation (2021)
+
+- Initial implementation as an R function (`paint_miniature.R`).
+- Parallel Python implementation added shortly after.
+- Dockerised entry point.
+
+[Unreleased]: https://github.com/adamjtaylor/miniature/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/adamjtaylor/miniature/releases/tag/v2.0.0

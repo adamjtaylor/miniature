@@ -213,6 +213,45 @@ If you use Miniature in your research, please cite:
 > Taylor AJ, et al. (2024). Miniature: Unsupervised glimpses into multiplexed tissue imaging datasets as thumbnails for data portals.
 > bioRxiv. doi: 10.1101/2024.10.01.615855
 
+A `CITATION.cff` file is provided for the GitHub "Cite this repository" button.
+
+## AI assistance disclosure
+
+Miniature is developed with assistance from AI coding tools, in line with
+the [rewrites.bio](https://rewrites.bio/) framework's transparency principle.
+
+### Tools used
+
+| Tool | Role |
+|------|------|
+| Claude Code (Opus 4.x) | Refactors and performance work, test scaffolding, documentation. |
+
+Visible in the git history as `claude/issue-*` branches and PRs gated by
+the Claude Code Review workflow in `.github/workflows/`.
+
+### How AI-assisted changes are validated
+
+We do **not** rely on code review alone. Every PR that touches a
+performance-sensitive or output-generating path must satisfy the
+equivalence policy in [`docs/equivalence.md`](./docs/equivalence.md):
+
+- SSIM ≥ 0.99 on output PNGs against a frozen reference set.
+- Mean ΔE2000 ≤ 1.0 over tissue pixels.
+- Trustworthiness and perceptual-trustworthiness deltas within
+  documented thresholds.
+
+Benchmarks (`tests/test_pipeline_benchmark.py`,
+`tests/test_delta_e_scaling.py`) provide the wall-time and scaling
+numbers each PR compares against.
+
+### Known validation gaps
+
+- The equivalence baseline numbers are pending the first capture run on
+  the pinned dependency set (see `docs/perf/baseline.md`).
+- 2D-colormap outputs share the PNG SSIM check with 3D, but do not yet
+  have a perceptual-trustworthiness baseline.
+- No validation on 3D / z-stack imaging — single-plane inputs only.
+
 ## License
 
 MIT License

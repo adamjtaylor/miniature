@@ -9,10 +9,27 @@ Supports:
 - 2D embeddings: optimize into unit square [0,1]² for colormap lookup
 """
 
+import os
+
 import numpy as np
 import colour
 import estimagic as em
 import matplotlib.pyplot as plt
+
+
+def _multistart_options() -> dict:
+    """Multistart options for the UCIE rotation optimisation.
+
+    When ``MINIATURE_UMAP_SEED`` is exported (CI image regeneration), drop
+    parallelism so the optimisation is fully deterministic across runs. The
+    seed alone isn't enough — parallel evaluation order can change which
+    optimum wins ties. The single-core path adds a few seconds per colormap;
+    acceptable for CI, not for production.
+    """
+    base = {"n_samples": 10, "seed": 42}
+    if os.environ.get("MINIATURE_UMAP_SEED"):
+        return {**base, "n_cores": 1}
+    return {**base, "n_cores": 4}
 from scipy.spatial import ConvexHull
 
 
@@ -395,7 +412,7 @@ def optimize_embedding(
             soft_lower_bounds=lb,
             soft_upper_bounds=ub,
             multistart=True,
-            multistart_options={"n_samples": 10, "n_cores": 4}
+            multistart_options=_multistart_options()
         )
         best = res.params
     except Exception as e:
@@ -617,7 +634,7 @@ def optimize_embedding_2d(
             soft_lower_bounds=lb,
             soft_upper_bounds=ub,
             multistart=True,
-            multistart_options={"n_samples": 10, "n_cores": 4}
+            multistart_options=_multistart_options()
         )
         best = res.params
     except Exception as e:

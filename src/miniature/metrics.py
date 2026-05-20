@@ -36,19 +36,9 @@ def delta_e_pdist(rgb_array: np.ndarray) -> np.ndarray:
     Returns:
         Condensed distance matrix (as returned by scipy.spatial.distance.pdist)
     """
-    n = len(rgb_array)
-
-    # Convert RGB to LAB
     lab_array = colour.XYZ_to_Lab(colour.sRGB_to_XYZ(rgb_array))
-
-    # Calculate condensed distance matrix
-    distances = []
-    for i in range(n):
-        for j in range(i + 1, n):
-            d = colour.delta_E(lab_array[i], lab_array[j], method='CIE 2000')
-            distances.append(d)
-
-    return np.array(distances)
+    i_idx, j_idx = np.triu_indices(len(lab_array), k=1)
+    return colour.delta_E(lab_array[i_idx], lab_array[j_idx], method='CIE 2000')
 
 
 def main():

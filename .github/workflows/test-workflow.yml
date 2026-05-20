@@ -27,7 +27,7 @@ jobs:
 
     - name: Run unit tests (excluding slow benchmarks)
       run: |
-        pytest tests/ -v -k "not slow"
+        pytest tests/ -v -k "not slow" -m "not benchmark"
 
   generate-images:
     needs: test
@@ -35,6 +35,11 @@ jobs:
     strategy:
       matrix:
         n_components: [2, 3]
+    env:
+      # Pin UMAP RNG so regenerated README images don't drift across runs.
+      # Setting this forces single-threaded UMAP (umap-learn behaviour) — that's
+      # acceptable here since CI image regeneration is not the perf-critical path.
+      MINIATURE_UMAP_SEED: "42"
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -158,7 +163,13 @@ jobs:
 
     - name: Check for image changes and commit
       run: |
-        git add docs/images/
+        # Only stage the primary colormap thumbnails and the channel mosaic.
+        # Embedding plots (*-embedding.png, embedding_*.png) are rendered by
+        # matplotlib 3D scatter which has byte-level drift across CI runs
+        # even when the underlying embedding is deterministic — staging them
+        # would put the workflow into an infinite auto-commit loop.
+        git add docs/images/example_*.png docs/images/channel_mosaic.png || true
+        git reset -- 'docs/images/example_*-embedding.png' 2>/dev/null || true
         if ! git diff --cached --quiet; then
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

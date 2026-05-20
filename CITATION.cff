@@ -1,0 +1,21 @@
+cff-version: 1.2.0
+message: "If you use Miniature in your research, please cite the preprint below."
+title: "Miniature"
+abstract: "Visual thumbnails from high-dimensional imaging data via dimensionality reduction and perceptually meaningful color mappings."
+type: software
+authors:
+  - family-names: Taylor
+    given-names: Adam J.
+repository-code: "https://github.com/adamjtaylor/miniature"
+license: MIT
+version: "2.0.0"
+preferred-citation:
+  type: article
+  title: "Miniature: Unsupervised glimpses into multiplexed tissue imaging datasets as thumbnails for data portals"
+  authors:
+    - family-names: Taylor
+      given-names: Adam J.
+  year: 2024
+  journal: bioRxiv
+  doi: 10.1101/2024.10.01.615855
+  url: "https://www.biorxiv.org/content/10.1101/2024.10.01.615855"

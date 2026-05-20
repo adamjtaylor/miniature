@@ -202,18 +202,18 @@ def assign_colours_lab(embedding: np.ndarray) -> np.ndarray:
     """
     print("Assigning LAB colours to embedding (vectorized)")
 
-    # Scale dimensions to LAB ranges
-    # a* and b* range: [-128, 127]
-    # L* range: [0, 100]
-    scaler_ab = MinMaxScaler(feature_range=(-128, 127))
-    scaler_l = MinMaxScaler(feature_range=(0, 100))
+    # Per-dim min-max normalise to [0, 1], then linearly map each channel
+    # into its LAB range. L* in [0, 100], a*/b* in [-128, 127].
+    emb_min = embedding.min(axis=0)
+    emb_range = np.ptp(embedding, axis=0)
+    emb_range = np.where(emb_range == 0, 1.0, emb_range)
+    normalised = (embedding - emb_min) / emb_range
 
-    dim1 = scaler_ab.fit_transform(embedding[:, 0:1])
-    dim2 = scaler_ab.fit_transform(embedding[:, 1:2])
-    dim3 = scaler_l.fit_transform(embedding[:, 2:3])
-
-    # LAB array: [L, a, b] - note: L is third dimension in embedding
-    lab = np.hstack([dim3, dim1, dim2])
+    lab = np.column_stack([
+        normalised[:, 2] * 100.0,
+        normalised[:, 0] * 255.0 - 128.0,
+        normalised[:, 1] * 255.0 - 128.0,
+    ])
 
     # Vectorized LAB to RGB conversion using colour-science
     xyz = colour.Lab_to_XYZ(lab)
@@ -241,18 +241,18 @@ def assign_colours_oklab(embedding: np.ndarray) -> np.ndarray:
     """
     print("Assigning OKLab colours to embedding (vectorized)")
 
-    # Scale dimensions to OKLab ranges
-    # L range: [0, 1]
-    # a, b range: approximately [-0.4, 0.4] for sRGB gamut
-    scaler_ab = MinMaxScaler(feature_range=(-0.4, 0.4))
-    scaler_l = MinMaxScaler(feature_range=(0, 1))
+    # Per-dim min-max normalise to [0, 1], then linearly map each channel
+    # into its OKLab range. L in [0, 1], a/b in [-0.4, 0.4] (sRGB gamut).
+    emb_min = embedding.min(axis=0)
+    emb_range = np.ptp(embedding, axis=0)
+    emb_range = np.where(emb_range == 0, 1.0, emb_range)
+    normalised = (embedding - emb_min) / emb_range
 
-    dim1 = scaler_ab.fit_transform(embedding[:, 0:1])
-    dim2 = scaler_ab.fit_transform(embedding[:, 1:2])
-    dim3 = scaler_l.fit_transform(embedding[:, 2:3])
-
-    # OKLab array: [L, a, b] - note: L is third dimension in embedding
-    oklab = np.hstack([dim3, dim1, dim2])
+    oklab = np.column_stack([
+        normalised[:, 2],
+        normalised[:, 0] * 0.8 - 0.4,
+        normalised[:, 1] * 0.8 - 0.4,
+    ])
 
     # Vectorized OKLab to RGB conversion using colour-science
     xyz = colour.Oklab_to_XYZ(oklab)
@@ -277,16 +277,11 @@ def assign_colours_rgb(embedding: np.ndarray) -> np.ndarray:
     """
     print("Assigning RGB colours to embedding (vectorized)")
 
-    scaler = MinMaxScaler(feature_range=(0, 1))
-
-    dim1 = scaler.fit_transform(embedding[:, 0:1])
-    dim2 = scaler.fit_transform(embedding[:, 1:2])
-    dim3 = scaler.fit_transform(embedding[:, 2:3])
-
-    rgb = np.hstack([dim3, dim1, dim2])
-
-    # Clamp to valid RGB range
-    rgb = np.clip(rgb, 0, 1)
+    emb_min = embedding.min(axis=0)
+    emb_range = np.ptp(embedding, axis=0)
+    emb_range = np.where(emb_range == 0, 1.0, emb_range)
+    normalised = (embedding - emb_min) / emb_range
+    rgb = normalised[:, [2, 0, 1]]
 
     print(f"RGB range: [{rgb.min():.3f}, {rgb.max():.3f}]")
     print("RGB colors assigned")
@@ -317,11 +312,10 @@ def assign_colours_2d(
     if pre_scaled:
         scaled = embedding
     else:
-        scaler = MinMaxScaler(feature_range=(0, 1))
-        scaled = np.hstack([
-            scaler.fit_transform(embedding[:, 0:1]),
-            scaler.fit_transform(embedding[:, 1:2])
-        ])
+        emb_min = embedding.min(axis=0)
+        emb_range = np.ptp(embedding, axis=0)
+        emb_range = np.where(emb_range == 0, 1.0, emb_range)
+        scaled = (embedding - emb_min) / emb_range
 
     # Map to colormap pixel coordinates
     x_coords = (scaled[:, 0] * (width - 1)).astype(int)

@@ -18,6 +18,13 @@ follows [semantic versioning](https://semver.org/).
 - `remove_background` and `keep_background` no longer call
   `np.array(zarray)` twice. On the medium reference image this drops
   peak RSS from 5.6 GB to 3.4 GB; output is byte-identical.
+- `assign_colours_lab`, `assign_colours_oklab`, `assign_colours_rgb`,
+  and `assign_colours_2d` replace the per-dimension `MinMaxScaler`
+  calls with a single broadcast normalisation. Output is byte-equivalent
+  to fp64 rounding (max abs diff ≤ 6e-14 on a 50k-point synthetic
+  input); not a measurable wall-time win on top of the UMAP cost, but
+  the code is shorter and avoids three scaler instantiations per
+  colormap.
 
 ### Added
 

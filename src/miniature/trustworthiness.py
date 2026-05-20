@@ -41,18 +41,14 @@ def delta_e_distance_matrix(rgb_array: np.ndarray) -> np.ndarray:
         (N, N) distance matrix
     """
     n = len(rgb_array)
-
-    # Convert all RGB to LAB
     lab_array = colour.XYZ_to_Lab(colour.sRGB_to_XYZ(rgb_array))
 
-    # Calculate pairwise distances
-    distances = np.zeros((n, n))
-    for i in range(n):
-        for j in range(i + 1, n):
-            d = colour.delta_E(lab_array[i], lab_array[j], method='CIE 2000')
-            distances[i, j] = d
-            distances[j, i] = d
+    i_idx, j_idx = np.triu_indices(n, k=1)
+    upper = colour.delta_E(lab_array[i_idx], lab_array[j_idx], method='CIE 2000')
 
+    distances = np.zeros((n, n))
+    distances[i_idx, j_idx] = upper
+    distances[j_idx, i_idx] = upper
     return distances
 
 

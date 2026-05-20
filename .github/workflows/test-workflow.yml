@@ -35,6 +35,11 @@ jobs:
     strategy:
       matrix:
         n_components: [2, 3]
+    env:
+      # Pin UMAP RNG so regenerated README images don't drift across runs.
+      # Setting this forces single-threaded UMAP (umap-learn behaviour) — that's
+      # acceptable here since CI image regeneration is not the perf-critical path.
+      MINIATURE_UMAP_SEED: "42"
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4

@@ -7,6 +7,7 @@ and maps the low-dimensional embeddings to perceptually meaningful colors.
 """
 
 import argparse
+import os
 import sys
 import warnings
 from pathlib import Path
@@ -168,18 +169,23 @@ def run_umap(tissue_array: np.ndarray, n: int, metric: str) -> np.ndarray:
 
     Defaults to random initialisation and multi-threaded NN search; both are
     safe wins on the reference set (~18× faster on a 655k-pixel image with
-    no measurable trustworthiness loss). For strict reproducibility, pass
-    ``random_state`` via a wrapper — note that umap-learn forces
-    single-threaded execution when ``random_state`` is set.
+    no measurable trustworthiness loss). umap-learn forces single-threaded
+    execution when a seed is set, so we only opt in when ``MINIATURE_UMAP_SEED``
+    is exported — used by CI image regeneration to keep outputs deterministic.
     """
     print("Running UMAP")
-    reducer = umap.UMAP(
+    kwargs = dict(
         n_components=n,
         metric=metric,
         init="random",
         n_jobs=-1,
         verbose=True,
     )
+    seed_env = os.environ.get("MINIATURE_UMAP_SEED")
+    if seed_env is not None:
+        kwargs["random_state"] = int(seed_env)
+        kwargs.pop("n_jobs")
+    reducer = umap.UMAP(**kwargs)
     return reducer.fit_transform(tissue_array)
 
 

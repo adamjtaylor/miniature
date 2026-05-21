@@ -146,12 +146,18 @@ jobs:
   commit-images:
     needs: [generate-images, channel-mosaic]
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
+    # Only auto-commit on push to main, not on PR builds. PR-time pushes hit
+    # a deadlock: the commit-images push uses GITHUB_TOKEN, which by design
+    # can't trigger another workflow, so required status checks on the new
+    # HEAD never report. On main this is a non-issue — the auto-commit just
+    # lands a "docs: update example images" commit on main that future PRs
+    # branch from. README stays current with whatever the latest code on
+    # main produces.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        ref: ${{ github.head_ref }}
         token: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Download all image artifacts
@@ -163,13 +169,7 @@ jobs:
 
     - name: Check for image changes and commit
       run: |
-        # Only stage the primary colormap thumbnails and the channel mosaic.
-        # Embedding plots (*-embedding.png, embedding_*.png) are rendered by
-        # matplotlib 3D scatter which has byte-level drift across CI runs
-        # even when the underlying embedding is deterministic — staging them
-        # would put the workflow into an infinite auto-commit loop.
-        git add docs/images/example_*.png docs/images/channel_mosaic.png || true
-        git reset -- 'docs/images/example_*-embedding.png' 2>/dev/null || true
+        git add docs/images/
         if ! git diff --cached --quiet; then
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
